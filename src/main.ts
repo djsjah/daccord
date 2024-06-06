@@ -1,42 +1,23 @@
-import { NestFactory } from '@nestjs/core';
-import { NestExpressApplication } from '@nestjs/platform-express';
-import { ConfigService } from '@nestjs/config';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { join } from 'path';
+import express from 'express';
+import config from './app.config';
 import AppModule from './app.module';
-import AllExceptionsFilter from './filter/all.exception.filter';
-import ValidationExceptionFilter from './filter/validation.exception.filter';
-import NotFoundExceptionFilter from './filter/found.exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  const configService = app.get(ConfigService);
-  const port = configService.get('PORT');
+  await AppModule.load();
 
-  if (process.env.SERVER_DESCR === 'Local') {
-    process.env.SERVER_URL += `:${port}`;
-  }
+  const app = express();
+  const { port } = config();
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('REST API для базы данных пользователей и их постов')
-    .setDescription('API для управления пользователями и их постами')
-    .setVersion('1.0')
-    .addTag('users')
-    .addTag('posts')
-    .addServer(process.env.SERVER_URL, process.env.SERVER_DESCR)
-    .build()
+  process.env.CUR_URL = process.env.NODE_ENV === 'development' ?
+    `${process.env.URL_DEV}:${port}` : process.env.URL_PROD;
 
-  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+  app.get('/', (req, res) => {
+    res.send('Hello World!');
+  });
 
-  SwaggerModule.setup('api', app, swaggerDocument);
-  app.useGlobalFilters(
-    new AllExceptionsFilter(),
-    new ValidationExceptionFilter(),
-    new NotFoundExceptionFilter()
-  );
-  app.useStaticAssets(join(__dirname, '..', 'public'));
-
-  await app.listen(port);
+  app.listen(port, () => {
+    console.log(`Server running on ${process.env.CUR_URL} - ${process.env.NODE_ENV}`);
+  });
 }
 
 bootstrap();

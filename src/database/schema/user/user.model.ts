@@ -7,19 +7,13 @@ import {
   UpdatedAt,
   BelongsToMany
 } from 'sequelize-typescript';
-import { ApiProperty } from '@nestjs/swagger';
 import { v4 as uuid } from 'uuid';
-import UserContactModel from './user.contact.model';
-import SubscriptionModel from '../subscription/subscription.model';
-import PostModel from '../post/post.model';
+import UserContact from './user.contact.model';
+import Post from '../post/post.model';
+import Subscription from '../subscription/subscription.model';
 
 @Table
-class UserModel extends Model {
-  @ApiProperty({
-    description: 'User id',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-    type: String
-  })
+class User extends Model {
   @Column({
     type: DataType.UUID,
     primaryKey: true,
@@ -29,35 +23,30 @@ class UserModel extends Model {
   })
   id!: string;
 
-  @ApiProperty({ description: 'User name', example: 'dany_35', type: String })
   @Column({
     type: DataType.STRING,
     allowNull: false
   })
   name!: string;
 
-  @ApiProperty({ description: 'User role', example: 'admin', type: String })
   @Column({
     type: DataType.STRING,
     allowNull: false
   })
   role!: string;
 
-  @ApiProperty({ description: 'User email', example: 'st1035@mail.ru', type: String })
   @Column({
     type: DataType.STRING,
     allowNull: false
   })
   email!: string;
 
-  @ApiProperty({ description: 'User password', example: 'kjelkJls822??!!', type: String })
   @Column({
     type: DataType.STRING,
     allowNull: false
   })
   password!: string;
 
-  @ApiProperty({ description: 'User creation date', example: new Date(), type: Date })
   @Column({
     type: DataType.DATE,
     defaultValue: new Date(),
@@ -65,7 +54,6 @@ class UserModel extends Model {
   })
   createdAt!: Date;
 
-  @ApiProperty({ description: 'User modification date', example: new Date(), type: Date })
   @UpdatedAt
   @Column({
     type: DataType.DATE,
@@ -73,7 +61,6 @@ class UserModel extends Model {
   })
   updatedAt!: Date;
 
-  @ApiProperty({ description: 'User rating', example: 0, type: Number })
   @Column({
     type: DataType.INTEGER,
     defaultValue: 0,
@@ -81,20 +68,17 @@ class UserModel extends Model {
   })
   rating!: number;
 
-  @ApiProperty({ description: 'User posts', type: () => [PostModel] })
-  @HasMany(() => PostModel)
-  posts!: PostModel[];
+  @HasMany(() => Post)
+  posts!: Post[];
 
-  @ApiProperty({ description: 'User contacts', type: () => [UserContactModel] })
-  @HasMany(() => UserContactModel)
-  contacts!: UserContactModel[];
+  @HasMany(() => UserContact)
+  contacts!: UserContact[];
 
-  @ApiProperty({ description: 'User subscriber', type: () => [UserModel] })
-  @BelongsToMany(() => UserModel, {
-    through: () => SubscriptionModel,
+  @BelongsToMany(() => User, {
+    through: () => Subscription,
     foreignKey: 'subscriberId',
     otherKey: 'userId'
   })
-  subscribers!: UserModel[];
+  subscribers!: User[];
 }
-export default UserModel;
+export default User;
