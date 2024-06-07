@@ -1,0 +1,316 @@
+openapi: 3.0.0
+info:
+  title: REST API for Users and Posts Database
+  version: 1.0
+servers:
+  - url: http://localhost:5000
+paths:
+  /api/users:
+    get:
+      summary: Get all users
+      tags:
+        - users
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+            default: ''
+          required: false
+          description: Search string that matches user names or emails
+      responses:
+        '200':
+          description: List of all users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Bad request
+        '401':
+          description: Not authorized
+        '404':
+          description: Users not found
+        '422':
+          description: Unprocessable entity
+        '500':
+          description: Internal server error
+    post:
+      summary: Create a new user
+      tags:
+        - users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IUser'
+      responses:
+        '201':
+          description: User successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Bad request
+        '401':
+          description: Not authorized
+        '422':
+          description: Unprocessable entity
+        '500':
+          description: Internal server error
+  /api/users/{id}:
+    get:
+      summary: Get a user by id
+      tags:
+        - users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User id
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Bad request
+        '401':
+          description: Not authorized
+        '404':
+          description: User not found
+        '422':
+          description: Unprocessable entity
+        '500':
+          description: Internal server error
+  /api/posts:
+    get:
+      summary: Get all posts
+      tags:
+        - posts
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+            default: ''
+          required: false
+          description: Search string that matches post titles or text
+      responses:
+        '200':
+          description: List of all posts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '400':
+          description: Bad request
+        '401':
+          description: Not authorized
+        '404':
+          description: Posts not found
+        '422':
+          description: Unprocessable entity
+        '500':
+          description: Internal server error
+    post:
+      summary: Create a new post
+      tags:
+        - posts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IPost'
+      responses:
+        '201':
+          description: Post successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '400':
+          description: Bad request
+        '401':
+          description: Not authorized
+        '422':
+          description: Unprocessable entity
+        '500':
+          description: Internal server error
+  /api/posts/{id}:
+    get:
+      summary: Get a post by id
+      tags:
+        - posts
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Post id
+      responses:
+        '200':
+          description: Post details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '400':
+          description: Bad request
+        '401':
+          description: Not authorized
+        '404':
+          description: User not found
+        '422':
+          description: Unprocessable entity
+        '500':
+          description: Internal server error
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        role:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        rating:
+          type: integer
+        posts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Post'
+        contacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserContact'
+        subscribers:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+    IUser:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        rating:
+          type: integer
+        contacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/IUserContact'
+    UserContact:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        value:
+          type: string
+        userId:
+          type: string
+          format: uuid
+        user:
+          $ref: '#/components/schemas/User'
+    IUserContact:
+      type: object
+      properties:
+        type:
+          type: string
+        value:
+          type: string
+    Post:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        access:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        content:
+          type: string
+        rating:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
+        authorId:
+          type: string
+          format: uuid
+        author:
+          $ref: '#/components/schemas/User'
+    IPost:
+      type: object
+      properties:
+        title:
+          type: string
+        access:
+          type: string
+        content:
+          type: string
+        rating:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
+        authorId:
+          type: string
+          format: uuid
+    Subscription:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        period:
+          type: string
+          format: date-time
+        userId:
+          type: string
+          format: uuid
+        subscriberId:
+          type: string
+          format: uuid
