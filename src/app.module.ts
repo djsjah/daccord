@@ -1,14 +1,20 @@
 import dotenv from 'dotenv';
-import DatabaseModule from './database/database.module';
-import User from './database/schema/user/user.model';
-import UserContact from './database/schema/user/user.contact.model';
-import Post from './database/schema/post/post.model';
-import Subscription from './database/schema/subscription/subscription.model';
+import dependencyContainer from './dependencyInjection/dependency.container';
+import SequelizeModule from './sequelize/sequelize.module';
+import AppRouter from './app.routes';
+import AppController from './app.controller';
+import UserModule from './domain/user/user.module';
+import PostModule from './domain/post/post.module';
+import User from './models/user/user.model';
+import UserContact from './models/user/user.contact.model';
+import Post from './models/post/post.model';
+import Subscription from './models/subscription/subscription.model';
 
 class AppModule {
-  public static async load(): Promise<void> {
+  public async load(): Promise<void> {
     dotenv.config();
-    const dbModule = new DatabaseModule(
+
+    dependencyContainer.registerInstance('seqModule', new SequelizeModule(
       {
         dialect: 'postgres',
         host: process.env.DATABASE_HOST_DEV!,
@@ -23,9 +29,13 @@ class AppModule {
         Post,
         Subscription
       ]
-    );
+    ));
+    await dependencyContainer.getInstance<SequelizeModule>('seqModule').onModuleInit();
 
-    await dbModule.onModuleInit();
+    dependencyContainer.registerInstance('appController', new AppController());
+    dependencyContainer.registerInstance('appRouter', new AppRouter());
+    dependencyContainer.registerInstance('userModule', new UserModule());
+    dependencyContainer.registerInstance('postModule', new PostModule());
   }
 }
 export default AppModule;

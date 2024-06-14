@@ -2,8 +2,6 @@ openapi: 3.0.0
 info:
   title: REST API for Users and Posts Database
   version: 1.0
-servers:
-  - url: http://localhost:5000
 paths:
   /api/users:
     get:
@@ -210,7 +208,7 @@ components:
         subscribers:
           type: array
           items:
-            $ref: '#/components/schemas/User'
+            $ref: '#/components/schemas/Subscription'
     IUser:
       type: object
       properties:

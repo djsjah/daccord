@@ -74,11 +74,11 @@ class User extends Model {
   @HasMany(() => UserContact)
   contacts!: UserContact[];
 
-  @BelongsToMany(() => User, {
+  @BelongsToMany(() => Subscription, {
     through: () => Subscription,
-    foreignKey: 'subscriberId',
-    otherKey: 'userId'
+    foreignKey: 'userId',
+    otherKey: 'subscriberId'
   })
-  subscribers!: User[];
+  subscribers!: Subscription[];
 }
 export default User;

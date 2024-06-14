@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { HttpError } from 'http-errors';
 
-function errorHandler(err: Error, req: Request, res: Response, next: NextFunction) {
+function errorHandler(err: Error, req: Request, res: Response, next: NextFunction): Response {
   let status = 500;
   let message = 'Internal Server Error';
 
@@ -10,7 +10,9 @@ function errorHandler(err: Error, req: Request, res: Response, next: NextFunctio
     message = err.message;
   }
 
-  res.status(status).json({
+  console.log("ErrorHandler: ", err);
+
+  return res.status(status).json({
     statusCode: status,
     message: message,
   });

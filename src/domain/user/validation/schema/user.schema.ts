@@ -3,8 +3,8 @@ import IUser from '../interface/user.interface';
 import UserContactSchema from './user.contact.schema';
 
 const UserSchema: ObjectSchema<IUser> = Joi.object({
-  name: Joi.string().alphanum().min(2).max(15).required(),
-  role: Joi.string().alphanum().min(4).max(5).required(),
+  name: Joi.string().min(2).max(15).required(),
+  role: Joi.string().min(4).max(5).required(),
   email: Joi.string().email().required(),
   password: Joi.string().pattern(new RegExp('^[a-zA-Z0-9]{8,30}$')).required(),
   rating: Joi.number().integer().optional(),

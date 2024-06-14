@@ -1,14 +1,18 @@
 import express from 'express';
 import cors from 'cors';
+import dependencyContainer from './dependencyInjection/dependency.container';
 import config from './app.config';
 import AppModule from './app.module';
-import userRouter from './domain/user/user.controller';
-import postRouter from './domain/post/post.controller';
+import AppRouter from './app.routes';
+import UserRouter from './domain/user/user.routes';
+import PostRouter from './domain/post/post.routes';
 import setupSwagger from './swagger/swagger.config';
 import errorHandler from './middleware/error/error.middleware';
 
 async function bootstrap() {
-  await AppModule.load();
+  const appModule = new AppModule();
+  dependencyContainer.registerInstance('appModule', new AppModule());
+  await appModule.load();
 
   const app = express();
   const { port } = config();
@@ -16,15 +20,16 @@ async function bootstrap() {
   process.env.CUR_URL = process.env.NODE_ENV === 'development' ?
     `${process.env.URL_DEV}:${port}` : process.env.URL_PROD;
 
+  app.use(cors({
+    origin: '*',
+    optionsSuccessStatus: 200
+  }));
   app.use(express.json());
-  app.use('/api/users', userRouter);
-  app.use('/api/posts', postRouter);
+  app.use('/', dependencyContainer.getInstance<AppRouter>('appRouter').getAppRouter());
+  app.use('/api/users', dependencyContainer.getInstance<UserRouter>('userRouter').getUserRouter());
+  app.use('/api/posts', dependencyContainer.getInstance<PostRouter>('postRouter').getPostRouter());
 
   setupSwagger(app);
-
-  app.get('/', (req, res) => {
-    res.send('Hello World!');
-  });
 
   app.use(errorHandler);
 

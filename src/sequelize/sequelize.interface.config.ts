@@ -1,6 +1,6 @@
 import { Dialect } from 'sequelize';
 
-interface IDbConfig {
+interface ISequelizeConfig {
   dialect: Dialect;
   host: string;
   port: number;
@@ -8,4 +8,4 @@ interface IDbConfig {
   password: string;
   database: string;
 }
-export default IDbConfig;
+export default ISequelizeConfig;

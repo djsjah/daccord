@@ -5,5 +5,5 @@ interface IPost {
   rating?: number;
   tags?: string[];
   authorId: string;
-}
+};
 export default IPost;

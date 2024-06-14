@@ -1,17 +1,23 @@
 import { Op } from 'sequelize';
 import { NotFound } from 'http-errors';
 import IPost from './validation/interface/post.interface';
-import Post from '../../database/schema/post/post.model';
+import Post from '../../models/post/post.model';
+import User from '../../models/user/user.model';
 import UserService from '../user/user.service';
-import { NextFunction } from 'express';
 
 class PostService {
+  private readonly postAssociations = [
+    { model: User, as: 'author' }
+  ];
+
   constructor(private readonly userService: UserService) { }
 
-  public async getAllPosts(searchSubstring: string, next: NextFunction): Promise<Post[]> {
+  public async getAllPosts(searchSubstring: string): Promise<Post[] | never> {
     let posts = [];
     if (!searchSubstring) {
-      posts = await Post.findAll();
+      posts = await Post.findAll({
+        include: this.postAssociations
+      });
     }
     else {
       posts = await Post.findAll({
@@ -20,34 +26,38 @@ class PostService {
             { title: { [Op.like]: `%${searchSubstring}%` } },
             { content: { [Op.like]: `%${searchSubstring}%` } }
           ]
-        }
+        },
+        include: this.postAssociations
       });
 
       if (posts.length === 0) {
-        next(new NotFound(`Posts by search substring: ${searchSubstring} - are not found`));
+        throw new NotFound(`Posts by search substring: ${searchSubstring} - are not found`);
       }
     }
 
     return posts;
   }
 
-  public async getPostById(id: string, next: NextFunction): Promise<Post | null> {
-    const post = await Post.findByPk(id);
+  public async getPostById(id: string): Promise<Post | never> {
+    const post = await Post.findOne({
+      where: { id },
+      include: this.postAssociations
+    });
     if (!post) {
-      next(new NotFound(`Post with id: ${id} - is not found`));
+      throw new NotFound(`Post with id: ${id} - is not found`);
     }
 
     return post;
   }
 
-  public async createPost(postData: IPost, next: NextFunction): Promise<Post> {
-    await this.userService.getUserById(postData.authorId, next);
+  public async createPost(postData: IPost): Promise<Post | never> {
+    await this.userService.getUserById(postData.authorId);
 
-    return (
-      await Post.create({
-        ...postData
-      })
-    );
+    const newPost = await Post.create({
+      ...postData
+    });
+
+    return this.getPostById(newPost.id);
   }
 }
 export default PostService;

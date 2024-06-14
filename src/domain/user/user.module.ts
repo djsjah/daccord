@@ -1,16 +1,18 @@
+import dependencyContainer from '../../dependencyInjection/dependency.container';
+import UserRouter from './user.routes';
+import UserController from './user.controller';
 import UserService from './user.service';
 
 class UserModule {
+  private readonly userController: UserController;
   private readonly userService: UserService;
 
   constructor() {
     this.userService = new UserService();
-  }
-
-  public getUserServiceSingleton(): UserService {
-    return this.userService;
+    this.userController = new UserController(this.userService);
+    dependencyContainer.registerInstance('userService', this.userService);
+    dependencyContainer.registerInstance('userController', this.userController);
+    dependencyContainer.registerInstance('userRouter', new UserRouter());
   }
 }
-
-const userModule = new UserModule();
-export default userModule;
+export default UserModule;

@@ -1,42 +1,57 @@
 import { NextFunction, Request, Response } from 'express';
-import express from 'express';
 import PostService from './post.service';
 import PostSchema from './validation/schema/post.schema';
-import userModule from '../user/user.module';
 
-const postRouter = express.Router();
-const postService: PostService = new PostService(userModule.getUserServiceSingleton());
+class PostController {
+  constructor(private readonly postService: PostService) { }
 
-postRouter.get('/', async (req: Request, res: Response, next: NextFunction) => {
-  const searchSubstring = req.query.search || '';
-  const posts = await postService.getAllPosts(searchSubstring as string, next);
+  public async getAllPosts(req: Request, res: Response, next: NextFunction) {
+    try {
+      const searchSubstring = req.query.search || '';
+      const posts = await this.postService.getAllPosts(searchSubstring as string);
 
-  if (!res.headersSent) {
-    res.json(posts);
-  }
-});
-
-postRouter.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
-  const id = req.params.id;
-  const post = await postService.getPostById(id, next);
-
-  if (post) {
-    res.json(post);
-  }
-});
-
-postRouter.post('/', async (req: Request, res: Response, next: NextFunction) => {
-  const postData = req.body;
-  const { error } = PostSchema.validate(postData);
-
-  if (error) {
-    return res.status(422).send(`Validation error: ${error.details[0].message}`);
+      if (!res.headersSent) {
+        return res.status(200).json({ status: 200, data: posts, message: "List of all posts" });
+      }
+    }
+    catch (err) {
+      next(err);
+    }
   }
 
-  const newPost = await postService.createPost(postData, next);
-  if (newPost) {
-    res.status(201).location(`/api/users/${newPost.id}`).json(newPost);
-  }
-});
+  public async getPostById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = req.params.id;
+      const post = await this.postService.getPostById(id);
 
-export default postRouter;
+      if (post) {
+        return res.status(200).json({ status: 200, data: post, message: "Post details" });
+      }
+    }
+    catch (err) {
+      next(err);
+    }
+  }
+
+  public async createPost(req: Request, res: Response, next: NextFunction) {
+    try {
+      const postData = req.body;
+      const { error } = PostSchema.validate(postData);
+
+      if (error) {
+        return res.status(422).send(`Validation error: ${error.details[0].message}`);
+      }
+
+      const newPost = await this.postService.createPost(postData);
+      if (newPost) {
+        return res.status(201).location(`/api/posts/${newPost.id}`).json(
+          { status: 201, data: newPost, message: "Post successfully created" }
+        );
+      }
+    }
+    catch (err) {
+      next(err);
+    }
+  }
+}
+export default PostController;
