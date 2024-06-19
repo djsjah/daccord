@@ -1,6 +1,7 @@
 import { Op } from 'sequelize';
 import { NotFound } from 'http-errors';
-import IPost from './validation/interface/post.interface';
+import IPostCreate from './validation/interface/post.create.interface';
+import IPostUpdate from './validation/interface/post.update.interface';
 import Post from '../../models/post/post.model';
 import User from '../../models/user/user.model';
 import UserService from '../user/user.service';
@@ -50,7 +51,7 @@ class PostService {
     return post;
   }
 
-  public async createPost(postData: IPost): Promise<Post | never> {
+  public async createPost(postData: IPostCreate): Promise<Post | never> {
     await this.userService.getUserById(postData.authorId);
 
     const newPost = await Post.create({
@@ -58,6 +59,19 @@ class PostService {
     });
 
     return this.getPostById(newPost.id);
+  }
+
+  public async updatePostById(id: string, newPostData: IPostUpdate): Promise<Post | never> {
+    const post = await this.getPostById(id);
+    Object.assign(post, newPostData);
+    await post.save();
+
+    return post;
+  }
+
+  public async deletePostById(id: string): Promise<void> {
+    const post = await this.getPostById(id);
+    await post.destroy();
   }
 }
 export default PostService;

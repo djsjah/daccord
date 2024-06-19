@@ -23,6 +23,7 @@ class Post extends Model {
 
   @Column({
     type: DataType.STRING,
+    unique: true,
     allowNull: false
   })
   title!: string;
@@ -49,6 +50,7 @@ class Post extends Model {
 
   @Column({
     type: DataType.TEXT,
+    unique: true,
     allowNull: false
   })
   content!: string;

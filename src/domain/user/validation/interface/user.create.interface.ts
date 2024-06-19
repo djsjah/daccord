@@ -1,11 +1,10 @@
 import IUserContact from './user.contact.interface';
 
-interface IUser {
+interface IUserCreate {
   name: string;
-  role: string;
+  role: 'admin' | 'user';
   email: string;
   password: string;
-  rating?: number;
   contacts?: IUserContact[];
 };
-export default IUser;
+export default IUserCreate;
