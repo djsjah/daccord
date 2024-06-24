@@ -7,7 +7,7 @@ import PostGetSchema from './validation/schema/post.get.schema';
 class PostController {
   constructor(private readonly postService: PostService) { }
 
-  public async getAllPosts(req: Request, res: Response, next: NextFunction) {
+  public async getAllPosts(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const searchSubstring = req.query.search || '';
       const posts = await this.postService.getAllPosts(searchSubstring as string);
@@ -18,9 +18,9 @@ class PostController {
     }
   }
 
-  public async getPostById(req: Request, res: Response, next: NextFunction) {
+  public async getPostById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      const postId = req.params.id;
+      const postId = req.params.postId;
       const { error } = PostGetSchema.validate(postId);
 
       if (error) {
@@ -35,7 +35,7 @@ class PostController {
     }
   }
 
-  public async createPost(req: Request, res: Response, next: NextFunction) {
+  public async createPost(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const postDataCreate = req.body;
       const { error } = PostCreateSchema.validate(postDataCreate);
@@ -45,6 +45,7 @@ class PostController {
       }
 
       const newPost = await this.postService.createPost(postDataCreate);
+
       return res.status(201).location(`/api/posts/${newPost.id}`).json(
         { status: 201, data: newPost, message: "Post successfully created" }
       );
@@ -54,20 +55,20 @@ class PostController {
     }
   }
 
-  public async updatePostById(req: Request, res: Response, next: NextFunction) {
+  public async updatePostById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      const postId = req.params.id;
-      const newPostData = req.body;
+      const postId = req.params.postId;
+      const postIdValid = PostGetSchema.validate(postId);
 
-      const idValidError = PostGetSchema.validate(postId);
-      const bodyValidError = PostUpdateSchema.validate(newPostData);
-
-      if (idValidError.error) {
-        return res.status(422).send(`Validation error: ${idValidError.error.details[0].message}`);
+      if (postIdValid.error) {
+        return res.status(422).send(`Validation error: ${postIdValid.error.details[0].message}`);
       }
 
-      if (bodyValidError.error) {
-        return res.status(422).send(`Validation error: ${bodyValidError.error.details[0].message}`);
+      const newPostData = req.body;
+      const newPostDataValid = PostUpdateSchema.validate(newPostData);
+
+      if (newPostDataValid.error) {
+        return res.status(422).send(`Validation error: ${newPostDataValid.error.details[0].message}`);
       }
 
       const updatedPost = await this.postService.updatePostById(postId, newPostData);
@@ -78,9 +79,9 @@ class PostController {
     }
   }
 
-  public async deletePostById(req: Request, res: Response, next: NextFunction) {
+  public async deletePostById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      const postId = req.params.id;
+      const postId = req.params.postId;
       const { error } = PostGetSchema.validate(postId);
 
       if (error) {

@@ -1,23 +1,25 @@
 import express, { Router } from 'express';
-import dependencyContainer from './dependencyInjection/dependency.container';
+import dependencyContainer from './utils/lib/dependencyInjection/dependency.container';
+import AbstractRouter from './app.routes.abstract';
 import AppController from './app.controller';
 
-class AppRouter {
+class AppRouter extends AbstractRouter {
   private readonly appRouter: Router;
   private readonly appController: AppController;
 
   constructor() {
+    super();
     this.appRouter = express.Router();
     this.appController = dependencyContainer.getInstance<AppController>('appController');
-    this.setupAppRouter();
+    this.setupRouter();
   }
 
-  public getAppRouter(): Router {
+  public override getRouter(): Router {
     return this.appRouter;
   }
 
-  private setupAppRouter(): void {
-    this.appRouter.get('/', this.appController.getMainPage);
+  protected override setupRouter(): void {
+    this.appRouter.get('/', this.appController.renderMainPage);
   }
 }
 export default AppRouter;
