@@ -2,7 +2,7 @@ import express, { Router } from 'express';
 import dependencyContainer from '../../../utils/lib/dependencyInjection/dependency.container';
 import AbstractRouter from '../../../app.routes.abstract';
 import UserContactController from '../controller/user.contact.controller';
-import authGuard from '../../auth/auth.guard';
+import authAdminGuard from '../../auth/guard/auth.admin.guard';
 
 class UserContactRouter extends AbstractRouter {
   private readonly userContactRouter: Router;
@@ -20,7 +20,7 @@ class UserContactRouter extends AbstractRouter {
   }
 
   protected override setupRouter(): void {
-    this.userContactRouter.use(authGuard);
+    this.userContactRouter.use(authAdminGuard);
     this.userContactRouter.get('/', (...args) => this.userContactController.getAllUsersContacts(...args));
 
     this.userContactRouter.get(

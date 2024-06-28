@@ -2,7 +2,8 @@ import express, { Router } from 'express';
 import dependencyContainer from '../../../utils/lib/dependencyInjection/dependency.container';
 import AbstractRouter from '../../../app.routes.abstract';
 import UserController from '../controller/user.controller';
-import authGuard from '../../auth/auth.guard';
+import authGuard from '../../auth/guard/auth.guard';
+import authAdminGuard from '../../auth/guard/auth.admin.guard';
 
 class UserRouter extends AbstractRouter {
   private readonly userRouter: Router;
@@ -20,8 +21,8 @@ class UserRouter extends AbstractRouter {
   }
 
   protected override setupRouter(): void {
+    this.userRouter.use(authAdminGuard);
     this.userRouter.get('/', (...args) => this.userController.getAllUsers(...args));
-    this.userRouter.use(authGuard);
     this.userRouter.get('/:userId', (...args) => this.userController.getUserById(...args));
     this.userRouter.put('/:userId', (...args) => this.userController.updateUserById(...args));
     this.userRouter.patch('/:userId', (...args) => this.userController.updateUserById(...args));

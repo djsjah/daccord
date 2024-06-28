@@ -20,6 +20,11 @@ class UserService {
     }
   ];
 
+  private readonly publicUserData = [
+    'name',
+    'email'
+  ];
+
   constructor(cryptoProvider: CryptoProvider) {
     this.cryptoProvider = cryptoProvider;
   }
@@ -60,14 +65,25 @@ class UserService {
     );
   }
 
-  public async getUserById(userId: string, nonActivated = false): Promise<User> {
-    const user = await User.findOne({
-      where: { id: userId },
-      include: this.userAssociations
-    });
+  public async getUserById(userId: string, includeAssociations = true, isPublicData = false): Promise<User> {
+    let user;
 
-    if (user && !nonActivated && !user.isActivated) {
-      throw new Forbidden("Forbidden - this account is not activated");
+    if (includeAssociations && !isPublicData) {
+      user = await User.findOne({
+        where: { id: userId },
+        include: this.userAssociations
+      });
+    }
+    else if (!includeAssociations && !isPublicData) {
+      user = await User.findOne({
+        where: { id: userId }
+      });
+    }
+    else if (!includeAssociations && isPublicData) {
+      user = await User.findOne({
+        where: { id: userId },
+        attributes: this.publicUserData
+      });
     }
 
     if (!user) {
@@ -79,8 +95,7 @@ class UserService {
 
   public async getUserByEmail(userEmail: string): Promise<User> {
     const user = await User.findOne({
-      where: { email: userEmail },
-      include: this.userAssociations
+      where: { email: userEmail }
     });
 
     if (user && !user.isActivated) {
@@ -89,6 +104,18 @@ class UserService {
 
     if (!user) {
       throw new NotFound(`User with email: ${userEmail} - is not found`);
+    }
+
+    return user;
+  }
+
+  public async getUserByVerifToken(verifToken: string): Promise<User> {
+    const user = await User.findOne({
+      where: { verifToken }
+    });
+
+    if (!user) {
+      throw new NotFound(`User with verification token: ${verifToken} - is not found`);
     }
 
     return user;
@@ -110,11 +137,16 @@ class UserService {
       await UserContact.bulkCreate(userContactsData);
     }
 
-    return this.getUserById(newUser.id, true);
+    const createdUser = await this.getUserById(newUser.id, false, true);
+    return createdUser;
   }
 
-  public async updateUserById(userId: string, newUserData: IUserUpdate, nonActivated = false): Promise<User> {
-    const user = await this.getUserById(userId, nonActivated);
+  public async updateUserById(
+    userId: string,
+    newUserData: IUserUpdate,
+    includeAssociations = true
+  ): Promise<User> {
+    const user = await this.getUserById(userId, includeAssociations);
     Object.assign(user, newUserData);
     await user.save();
 
@@ -122,7 +154,7 @@ class UserService {
   }
 
   public async deleteUserById(userId: string): Promise<void> {
-    const user = await this.getUserById(userId, true);
+    const user = await this.getUserById(userId);
     await user.destroy();
   }
 }

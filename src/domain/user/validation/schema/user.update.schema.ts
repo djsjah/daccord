@@ -8,7 +8,8 @@ const UserUpdateSchema: ObjectSchema<IUserUpdate> = Joi.object({
   password: Joi.string().pattern(
     new RegExp('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$%*?&]).{8,}$')
   ).required(),
-  isActivated: Joi.boolean().valid(true).required(),
+  isActivated: Joi.boolean().required(),
+  verifToken: Joi.string().allow(null).required(),
   rating: Joi.number().integer().required()
 });
 export default UserUpdateSchema;

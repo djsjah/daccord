@@ -1,4 +1,4 @@
 import Joi from 'joi';
 
-const PostGetSchema = Joi.string().uuid().required();
-export default PostGetSchema;
+export const PostGetByIdSchema = Joi.string().uuid().required();
+export const PostGetByTitleSchema = Joi.string().min(4).max(100).required();

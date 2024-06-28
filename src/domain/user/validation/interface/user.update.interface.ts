@@ -3,7 +3,8 @@ interface IUserUpdate {
   role: 'admin' | 'user';
   email: string;
   password: string;
-  isActivated: true;
+  isActivated: boolean;
+  verifToken: string | null;
   rating: number;
 };
 export default IUserUpdate;

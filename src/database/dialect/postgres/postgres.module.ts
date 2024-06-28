@@ -1,5 +1,5 @@
 import dependencyContainer from '../../../utils/lib/dependencyInjection/dependency.container';
-import ISequelizeConfig from '../../sequelize/sequelize.config.interface';
+import ISequelizeConfig from '../../sequelize/config/sequelize.config.interface';
 import PostgreService from './postgres.service';
 
 class PostgreModule {

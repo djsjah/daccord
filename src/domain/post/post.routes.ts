@@ -1,7 +1,8 @@
 import express, { Router } from 'express';
 import dependencyContainer from '../../utils/lib/dependencyInjection/dependency.container';
 import AbstractRouter from '../../app.routes.abstract';
-import authGuard from '../auth/auth.guard';
+import authGuard from '../auth/guard/auth.guard';
+import authAdminGuard from '../auth/guard/auth.admin.guard';
 import PostController from './post.controller';
 
 class PostRouter extends AbstractRouter {
@@ -20,13 +21,13 @@ class PostRouter extends AbstractRouter {
   }
 
   protected override setupRouter(): void {
-    this.postRouter.get('/', (...args) => this.postController.getAllPosts(...args));
     this.postRouter.use(authGuard);
-    this.postRouter.get('/:postId', (...args) => this.postController.getPostById(...args));
+    this.postRouter.get('/', (...args) => this.postController.getAllUserPosts(...args));
+    this.postRouter.get('/:postTitle', (...args) => this.postController.getPostByTitle(...args));
     this.postRouter.post('/', (...args) => this.postController.createPost(...args));
-    this.postRouter.put('/:postId', (...args) => this.postController.updatePostById(...args));
-    this.postRouter.patch('/:postId', (...args) => this.postController.updatePostById(...args));
-    this.postRouter.delete('/:postId', (...args) => this.postController.deletePostById(...args));
+    this.postRouter.put('/:postTitle', (...args) => this.postController.updatePostByTitle(...args));
+    this.postRouter.patch('/:postTitle', (...args) => this.postController.updatePostByTitle(...args));
+    this.postRouter.delete('/:postTitle', (...args) => this.postController.deletePostByTitle(...args));
   }
 }
 export default PostRouter;

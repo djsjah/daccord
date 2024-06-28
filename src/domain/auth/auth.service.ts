@@ -17,11 +17,17 @@ class AuthService {
   public async deleteAllNonActivatedAccounts() {
     try {
       const nonActivatedUsers = await this.userService.getAllNonActivatedUsers();
-      if (nonActivatedUsers.length > 0) {
-        await Promise.all(nonActivatedUsers.map(nonActivatedUser =>
-          this.userService.deleteUserById(nonActivatedUser.id)
-        ));
-      }
+      const currentDate = new Date();
+
+      const usersToDelete = nonActivatedUsers.filter(nonActivatedUser => {
+        const createdAtDate = new Date(nonActivatedUser.createdAt);
+        const diffInHours = Math.abs(currentDate.getTime() - createdAtDate.getTime()) / (1000 * 60 * 60);
+        return diffInHours > 3;
+      });
+
+      await Promise.all(usersToDelete.map(nonActivatedUser =>
+        this.userService.deleteUserById(nonActivatedUser.id)
+      ));
     }
     catch (err) {
       console.log(err);

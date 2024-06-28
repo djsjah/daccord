@@ -26,6 +26,9 @@
 .header__interactive {
   position: relative;
   z-index: 1;
+}
+
+.header__interactive_search {
   margin-right: 60px;
 }
 

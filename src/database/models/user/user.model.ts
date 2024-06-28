@@ -58,6 +58,12 @@ class User extends Model {
   isActivated!: boolean;
 
   @Column({
+    type: DataType.STRING,
+    allowNull: true
+  })
+  verifToken!: string | null;
+
+  @Column({
     type: DataType.DATE,
     defaultValue: new Date(),
     allowNull: false

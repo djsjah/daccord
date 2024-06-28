@@ -25,15 +25,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/UserPublic'
         '401':
           description: Unauthorized - incorrect email or password
         '400':
           description: Bad request
         '403':
           descripton: Forbidden - user account is not activated
-        '404':
-          description: User is not found
         '422':
           description: Unprocessable entity
         '500':
@@ -104,6 +102,8 @@ paths:
       summary: Get all users
       tags:
         - users
+      security:
+        - CookieAuth: []
       parameters:
         - in: query
           name: search
@@ -122,7 +122,7 @@ paths:
         '400':
           description: Bad request
         '401':
-          description: Not authorized
+          description: Unauthorized
         '404':
           description: Users are not found
         '422':
@@ -155,7 +155,7 @@ paths:
         '400':
           description: Bad request
         '401':
-          description: Not authorized
+          description: Unauthorized
         '403':
           descripton: Forbidden - user account is not activated
         '404':
@@ -203,7 +203,7 @@ paths:
         '400':
           description: Bad request
         '401':
-          description: Not authorized
+          description: Unauthorized
         '404':
           description: User is not found
         '422':
@@ -249,7 +249,7 @@ paths:
         '400':
           description: Bad request
         '401':
-          description: Not authorized
+          description: Unauthorized
         '404':
           description: User is not found
         '422':
@@ -277,7 +277,7 @@ paths:
         '400':
           description: Bad request
         '401':
-          description: Not authorized
+          description: Unauthorized
         '404':
           description: User is not found
         '422':
@@ -507,9 +507,11 @@ paths:
           description: Internal server error
   /api/posts:
     get:
-      summary: Get all posts
+      summary: Get all user posts
       tags:
         - posts
+      security:
+        - CookieAuth: []
       parameters:
         - in: query
           name: search
@@ -520,15 +522,15 @@ paths:
           description: Search string that matches post titles or text
       responses:
         '200':
-          description: List of all posts
+          description: List of all user posts
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Post'
+                $ref: '#/components/schemas/PostPublic'
         '400':
           description: Bad request
         '401':
-          description: Not authorized
+          description: Unauthorized
         '404':
           description: Posts are not found
         '422':
@@ -557,62 +559,58 @@ paths:
                     - 'фильмы'
                     - 'книги'
                     - 'Властелин Колец'
-                  authorId: '223d526d-5064-455e-9daf-6e7e3ad3e77d'
               Example Maximum Possible Request Body With Null:
                 value:
                   title: 'Властелин колец - книги против фильмов'
                   access: 'public'
                   content: 'Я прочитал все книги, а также посмотрел все фильмы про Властелин Колец...'
                   tags: null
-                  authorId: '223d526d-5064-455e-9daf-6e7e3ad3e77d'
               Example Minimum Possible Request Body:
                 value:
                   title: 'Властелин колец - книги против фильмов'
                   access: 'private'
                   content: 'Я прочитал все книги, а также посмотрел все фильмы про Властелин Колец...'
-                  authorId: '223d526d-5064-455e-9daf-6e7e3ad3e77d'
       responses:
         '201':
           description: Post successfully created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Post'
+                $ref: '#/components/schemas/PostPublic'
         '400':
           description: Bad request
         '401':
-          description: Not authorized
+          description: Unauthorized
         '422':
           description: Unprocessable entity
         '500':
           description: Internal server error
-  /api/posts/{postId}:
+  /api/posts/{postTitle}:
     get:
-      summary: Get a post by id
+      summary: Get a post by title
       tags:
         - posts
       security:
         - CookieAuth: []
       parameters:
-        - name: postId
+        - name: postTitle
           in: path
           required: true
           schema:
             type: string
-            format: uuid
           description: |
-            Post ID. Example: `685e80f3-63b0-4b71-b66e-b526f6a2491e`
+            Post Title. Example: `Властелин колец - книги против фильмов`
       responses:
         '200':
           description: Post details
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Post'
+                $ref: '#/components/schemas/PostPublic'
         '400':
           description: Bad request
         '401':
-          description: Not authorized
+          description: Unauthorized
         '404':
           description: Post is not found
         '422':
@@ -620,20 +618,19 @@ paths:
         '500':
           description: Internal server error
     put:
-      summary: Completely change a post by id
+      summary: Completely change a post by title
       tags:
         - posts
       security:
         - CookieAuth: []
       parameters:
-        - name: postId
+        - name: postTitle
           in: path
           required: true
           schema:
             type: string
-            format: uuid
           description: |
-            Post ID. Example: `685e80f3-63b0-4b71-b66e-b526f6a2491e`
+            Post Title. Example: `Властелин колец - книги против фильмов`
       requestBody:
         required: true
         content:
@@ -646,7 +643,6 @@ paths:
                   title: 'Властелин колец - книги Толкина против фильмов Джексона'
                   access: 'private'
                   content: 'Как-то в детстве я посмотрел фильм...'
-                  rating: 33
                   tags:
                     - 'фильмы'
                     - 'книги'
@@ -658,11 +654,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Post'
+                $ref: '#/components/schemas/PostPublic'
         '400':
           description: Bad request
         '401':
-          description: Not authorized
+          description: Unauthorized
         '404':
           description: Post is not found
         '422':
@@ -670,20 +666,19 @@ paths:
         '500':
           description: Internal server error
     patch:
-      summary: Partially change a post by id
+      summary: Partially change a post by title
       tags:
         - posts
       security:
         - CookieAuth: []
       parameters:
-        - name: postId
+        - name: postTitle
           in: path
           required: true
           schema:
             type: string
-            format: uuid
           description: |
-            Post ID. Example: `685e80f3-63b0-4b71-b66e-b526f6a2491e`
+            Post Title. Example: `Властелин колец - книги против фильмов`
       requestBody:
         required: true
         content:
@@ -696,7 +691,6 @@ paths:
                   title: 'Властелин колец - книги против фильмов'
                   access: 'public'
                   content: 'Как-то в детстве я посмотрел фильм...'
-                  rating: 33
                   tags:
                     - 'фильмы'
                     - 'книги'
@@ -707,11 +701,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Post'
+                $ref: '#/components/schemas/PostPublic'
         '400':
           description: Bad request
         '401':
-          description: Not authorized
+          description: Unauthorized
         '404':
           description: Post is not found
         '422':
@@ -719,27 +713,26 @@ paths:
         '500':
           description: Internal server error
     delete:
-      summary: Delete a post by id
+      summary: Delete a post by title
       tags:
         - posts
       security:
         - CookieAuth: []
       parameters:
-        - name: postId
+        - name: postTitle
           in: path
           required: true
           schema:
             type: string
-            format: uuid
           description: |
-            Post ID. Example: `685e80f3-63b0-4b71-b66e-b526f6a2491e`
+            Post Title. Example: `Властелин колец - книги против фильмов`
       responses:
         '200':
           description: Post successfully deleted
         '400':
           description: Bad request
         '401':
-          description: Not authorized
+          description: Unauthorized
         '404':
           description: Post is not found
         '422':
@@ -1101,6 +1094,13 @@ components:
                 type: array
                 items:
                   $ref: '#/components/schemas/Subscription'
+    UserPublic:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
     IUserRegister:
       type: object
       properties:
@@ -1222,6 +1222,24 @@ components:
               authorId: '550e8400-e29b-41d4-a716-446655440000'
               author:
                 $ref: '#/components/schemas/User'
+    PostPublic:
+      type: object
+      properties:
+        title:
+          type: string
+        access:
+          type: string
+          enum:
+            - public
+            - private
+        content:
+          type: string
+        rating:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
     IPostCreate:
       type: object
       properties:

@@ -1,6 +1,8 @@
+import User from './database/models/user/user.model';
+
 declare module 'express-session' {
   interface SessionData {
-    userId: string;
+    user: User;
   }
 }
 

@@ -30,8 +30,15 @@ class AuthController {
         return res.status(401).send("Unauthorized - incorrect email or password");
       }
 
-      req.session.userId = user.dataValues.id;
-      return res.status(200).json({ status: 200, data: user, message: "Authorization was successful" });
+      req.session.user = user.dataValues;
+      return res.status(200).json({
+        status: 200,
+        data: {
+          name: user.name,
+          email: user.email
+        },
+        message: "Authorization was successful"
+      });
     }
     catch (err) {
       if (err instanceof HttpError && err.status === 404) {
@@ -51,14 +58,19 @@ class AuthController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      const newUser = await this.userService.createUser(userDataRegister);
-      const verLink = process.env.CUR_URL + `/auth/signup/verify?token=${newUser.id}`;
+      const verifToken = this.cryptoProvider.generateSecureVerificationToken();
+      const verifLink = process.env.CUR_URL + `/auth/signup/verifyUserEmail?token=${verifToken}`;
+
+      await this.userService.createUser({
+        ...userDataRegister,
+        verifToken: verifToken
+      });
 
       await this.mailerTransporter.sendMailByTransporter({
         to: userDataRegister.email,
         subject: 'Verify your email',
-        html: `<p>Hello, it's Daccord Service) We are glad to welcome you as a user of our application!</p><br>
-        <p>Please confirm your email by clicking on the link: <a href="${verLink}">Verify Email</a></p>`
+        html: `<p>Hello, it's <strong>Daccord Service!</strong> We are glad to welcome you as a user of our application!</p><br>
+        <p>Please confirm your email by clicking on the link: <strong><a style="text-decoration: underline;" href="${verifLink}">Activate your account</a></strong></p>`
       });
 
       return res.status(200).send(`Email successfully sent to ${userDataRegister.email}`);
@@ -79,35 +91,87 @@ class AuthController {
     }
   }
 
-  public async verifyEmail(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+  public async verifyUserEmail(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const { token } = req.query;
-      const user = await this.userService.getUserById(token as string, true);
+      const user = await this.userService.getUserByVerifToken(token as string);
 
-      if (user.isActivated) {
-        return res.status(422).send(
-          "Account has not been verified! Most likely the token didn't match. Return to the registration page and try to register again"
-        );
+      if (user.role === 'admin') {
+        const verifAdminToken = this.cryptoProvider.generateSecureVerificationToken();
+        const verifAdminLink = process.env.CUR_URL + `/auth/signup/verifyAdminRole?token=${verifAdminToken}`;
+
+        await this.userService.updateUserById(user.id, {
+          name: user.name,
+          role: 'user',
+          email: user.email,
+          password: user.password,
+          isActivated: user.isActivated,
+          verifToken: verifAdminToken,
+          rating: user.rating
+        }, false);
+
+        await this.mailerTransporter.sendMailByTransporter({
+          to: process.env.ADMIN_EMAIL,
+          subject: 'Confirm new admin',
+          html: `<p>Hello, it's <strong>Daccord Service!</strong> A new user tries to register as admin with the following details:</p><br>
+          <p>Email: ${user.email}</p>
+          <p>Name: ${user.name}</p><br>
+          <p>If you really approved this admin, please activate his account: <strong><a style="text-decoration: underline;" href="${verifAdminLink}">Activate user account</a></strong></p>`
+        });
       }
-
-      await this.userService.updateUserById(user.id, {
-        name: user.name,
-        role: user.role as 'admin' | 'user',
-        email: user.email,
-        password: user.password,
-        isActivated: true,
-        rating: user.rating
-      }, true);
+      else {
+        await this.userService.updateUserById(user.id, {
+          name: user.name,
+          role: 'user',
+          email: user.email,
+          password: user.password,
+          isActivated: true,
+          verifToken: null,
+          rating: user.rating
+        }, false);
+      }
 
       return res.redirect(process.env.CUR_URL + '/api');
     }
     catch (err) {
       if (err instanceof HttpError && err.status === 404) {
-        return res.status(404).send(
-          "Account has not been verified! The token has expired. Return to the registration page and try to register again"
+        return res.status(401).send(
+          "Account has not been verified! Return to the registration page and try to register again"
         );
       }
 
+      next(err);
+    }
+  }
+
+  public async verifyAdminRole(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token } = req.query;
+      const user = await this.userService.getUserByVerifToken(token as string);
+
+      await this.userService.updateUserById(user.id, {
+        name: user.name,
+        role: 'admin',
+        email: user.email,
+        password: user.password,
+        isActivated: true,
+        verifToken: null,
+        rating: user.rating
+      }, false);
+
+      await this.mailerTransporter.sendMailByTransporter({
+        to: user.email,
+        subject: 'The role of admin',
+        html: `<p>Hello, it's <strong>Daccord Service!</strong> Your role of the admin was confirmed! You can go to the main page and singin as an admin:</p><br>
+        <p><strong><a style="text-decoration: underline;" href="${process.env.CUR_URL + '/api'}">Signin as admin</a></strong></p>`
+      });
+
+      return res.status(200).json({
+        status: 200,
+        message: "Admin successfully created"
+      });
+    }
+    catch (err) {
       next(err);
     }
   }

@@ -2,7 +2,7 @@ import express, { Router } from 'express';
 import dependencyContainer from '../../utils/lib/dependencyInjection/dependency.container';
 import AbstractRouter from '../../app.routes.abstract';
 import SubscriptionController from './subscription.controller';
-import authGuard from '../auth/auth.guard';
+import authAdminGuard from '../auth/guard/auth.admin.guard';
 
 class SubscriptionRouter extends AbstractRouter {
   private readonly subscrRouter: Router;
@@ -20,8 +20,8 @@ class SubscriptionRouter extends AbstractRouter {
   }
 
   protected override setupRouter(): void {
+    this.subscrRouter.use(authAdminGuard);
     this.subscrRouter.get('/', (...args) => this.subscrController.getAllSubscriptions(...args));
-    this.subscrRouter.use(authGuard);
     this.subscrRouter.get('/:userId', (...args) => this.subscrController.getAllSubscriptionsByUserId(...args));
 
     this.subscrRouter.get(

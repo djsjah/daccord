@@ -1,6 +1,6 @@
 import { Client } from 'pg';
 import IDialectService from '../dialect.service.interface';
-import ISequelizeConfig from '../../sequelize/sequelize.config.interface';
+import ISequelizeConfig from '../../sequelize/config/sequelize.config.interface';
 
 class PostgreService implements IDialectService {
   private readonly dbConfig: ISequelizeConfig;

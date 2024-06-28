@@ -1,7 +1,7 @@
 import { ModelCtor } from 'sequelize-typescript';
 import dependencyContainer from '../../utils/lib/dependencyInjection/dependency.container';
 import ISequelizeService from './service/sequelize.service.interface';
-import ISequelizeConfig from './sequelize.config.interface';
+import ISequelizeConfig from './config/sequelize.config.interface';
 import SequelizeService from './service/sequelize.service';
 import IDialectService from '../dialect/dialect.service.interface';
 

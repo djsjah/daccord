@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import dependencyContainer from './utils/lib/dependencyInjection/dependency.container';
-import ISequelizeConfig from './database/sequelize/sequelize.config.interface';
+import ISequelizeConfig from './database/sequelize/config/sequelize.config.interface';
 import SequelizeModule from './database/sequelize/sequelize.module';
 import PostgreModule from './database/dialect/postgres/postgres.module';
 import PostgreService from './database/dialect/postgres/postgres.service';
