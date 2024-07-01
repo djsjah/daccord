@@ -21,12 +21,16 @@ class UserRouter extends AbstractRouter {
   }
 
   protected override setupRouter(): void {
-    this.userRouter.use(authAdminGuard);
-    this.userRouter.get('/', (...args) => this.userController.getAllUsers(...args));
-    this.userRouter.get('/:userId', (...args) => this.userController.getUserById(...args));
-    this.userRouter.put('/:userId', (...args) => this.userController.updateUserById(...args));
-    this.userRouter.patch('/:userId', (...args) => this.userController.updateUserById(...args));
-    this.userRouter.delete('/:userId', (...args) => this.userController.deleteUserById(...args));
+    this.userRouter.get('/verifyUserEmail', (...args) => this.userController.verifyUserEmail(...args));
+
+    this.userRouter.use(authGuard);
+    this.userRouter.patch('/', (...args) => this.userController.updateUser(...args));
+
+    this.userRouter.use('/admin', authAdminGuard);
+    this.userRouter.get('/admin', (...args) => this.userController.getAllUsers(...args));
+    this.userRouter.get('/admin/:userId', (...args) => this.userController.getUserById(...args));
+    this.userRouter.patch('/admin/:userId', (...args) => this.userController.updateUserById(...args));
+    this.userRouter.delete('/admin/:userId', (...args) => this.userController.deleteUserById(...args));
   }
 }
 export default UserRouter;

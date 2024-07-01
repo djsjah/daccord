@@ -5,6 +5,7 @@ import UserController from './controller/user.controller';
 import UserContactController from './controller/user.contact.controller';
 import UserService from './service/user.service';
 import UserContactService from './service/user.contact.service';
+import MailerTransporter from '../../utils/lib/mailer/mailer.transporter';
 import CryptoProvider from '../../utils/lib/crypto/crypto.provider';
 
 class UserModule {
@@ -16,12 +17,16 @@ class UserModule {
 
 
   constructor() {
-    this.userService = new UserService(
+    this.userService = new UserService();
+    this.userContactService = new UserContactService(this.userService);
+
+    this.userController = new UserController(
+      this.userService,
+      this.userContactService,
+      dependencyContainer.getInstance<MailerTransporter>('mailerTransporter'),
       dependencyContainer.getInstance<CryptoProvider>('cryptoProvider')
     );
 
-    this.userContactService = new UserContactService(this.userService);
-    this.userController = new UserController(this.userService);
     this.userContactController = new UserContactController(this.userContactService);
 
     dependencyContainer.registerInstance('userService', this.userService);

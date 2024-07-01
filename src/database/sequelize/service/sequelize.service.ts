@@ -1,24 +1,23 @@
-import { Sequelize } from 'sequelize-typescript';
-import { ModelCtor } from 'sequelize-typescript';
+import { Sequelize, ModelCtor } from 'sequelize-typescript';
+import { QueryInterface } from 'sequelize';
 import { Umzug, SequelizeStorage } from 'umzug';
 import ISequelizeService from './sequelize.service.interface';
-import ISequelizeConfig from '../config/sequelize.config.interface';
+import ISequelizeConfig from '../sequelize.config.interface';
 
 class SequelizeService implements ISequelizeService {
   private readonly sequelize: Sequelize;
-  private readonly umzug;
+  private readonly sequelizeStorage: SequelizeStorage;
+  private readonly umzug: Umzug<QueryInterface>;
 
   constructor(config: ISequelizeConfig, models: ModelCtor[]) {
     this.sequelize = new Sequelize(config);
     this.sequelize.addModels(models);
-
-    const seq = this.sequelize;
-    const sequelizeStorage = new SequelizeStorage(this.sequelize.getQueryInterface());
+    this.sequelizeStorage = new SequelizeStorage(this.sequelize.getQueryInterface());
 
     this.umzug = new Umzug({
-      storage: sequelizeStorage,
+      storage: this.sequelizeStorage,
       migrations: { glob: `./src/database/migrations/*.js` },
-      context: seq.getQueryInterface(),
+      context: this.sequelize.getQueryInterface(),
       logger: console,
     });
   }

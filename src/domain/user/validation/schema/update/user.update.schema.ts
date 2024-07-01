@@ -1,7 +1,7 @@
 import Joi, { ObjectSchema } from 'joi';
-import IUserUpdate from '../interface/user.update.interface';
+import IUserPutUpdate from '../../interface/update/private/user.put.update.interface';
 
-const UserUpdateSchema: ObjectSchema<IUserUpdate> = Joi.object({
+const UserPutUpdateSchema: ObjectSchema<IUserPutUpdate> = Joi.object({
   name: Joi.string().min(2).max(15).required(),
   role: Joi.string().valid('admin', 'user').required(),
   email: Joi.string().email().required(),
@@ -12,4 +12,4 @@ const UserUpdateSchema: ObjectSchema<IUserUpdate> = Joi.object({
   verifToken: Joi.string().allow(null).required(),
   rating: Joi.number().integer().required()
 });
-export default UserUpdateSchema;
+export default UserPutUpdateSchema;

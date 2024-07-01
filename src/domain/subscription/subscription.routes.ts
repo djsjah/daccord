@@ -3,6 +3,7 @@ import dependencyContainer from '../../utils/lib/dependencyInjection/dependency.
 import AbstractRouter from '../../app.routes.abstract';
 import SubscriptionController from './subscription.controller';
 import authAdminGuard from '../auth/guard/auth.admin.guard';
+import authGuard from '../auth/guard/auth.guard';
 
 class SubscriptionRouter extends AbstractRouter {
   private readonly subscrRouter: Router;
@@ -20,30 +21,33 @@ class SubscriptionRouter extends AbstractRouter {
   }
 
   protected override setupRouter(): void {
-    this.subscrRouter.use(authAdminGuard);
-    this.subscrRouter.get('/', (...args) => this.subscrController.getAllSubscriptions(...args));
-    this.subscrRouter.get('/:userId', (...args) => this.subscrController.getAllSubscriptionsByUserId(...args));
-
+    this.subscrRouter.use('/public', authGuard);
+    this.subscrRouter.get('/public/user', (...args) => this.subscrController.getAllSubscriptionsByUserId(...args));
     this.subscrRouter.get(
-      '/:subscriberId', (...args) => this.subscrController.getAllSubscriptionsBySubscriberId(...args)
+      '/public/subscriber', (...args) => this.subscrController.getAllSubscriptionsBySubscriberId(...args)
     );
-
-    this.subscrRouter.get(
-      '/:subscriptionId', (...args) => this.subscrController.getSubscriptionById(...args)
+    this.subscrRouter.post(
+      '/public', (...args) => this.subscrController.createSubscriptionAsSubscriber(...args)
     );
-
-    this.subscrRouter.post('/', (...args) => this.subscrController.createSubscription(...args));
-
-    this.subscrRouter.put(
-      '/:subscriptionId', (...args) => this.subscrController.updateSubscriptionById(...args)
-    );
-
-    this.subscrRouter.patch(
-      '/:subscriptionId', (...args) => this.subscrController.updateSubscriptionById(...args)
-    );
-
     this.subscrRouter.delete(
-      '/:subscriptionId', (...args) => this.subscrController.deleteSubscriptionById(...args)
+      '/public/user/:subscriptionId',
+      (...args) => this.subscrController.deleteUserSubscription(...args)
+    );
+    this.subscrRouter.delete(
+      '/public/subscriber/:subscriptionId',
+      (...args) => this.subscrController.deleteSubscriberSubscription(...args)
+    );
+
+    this.subscrRouter.use('/admin', authAdminGuard);
+    this.subscrRouter.get('/admin', (...args) => this.subscrController.getAllSubscriptions(...args));
+    this.subscrRouter.get(
+      '/admin/:subscriptionId', (...args) => this.subscrController.getSubscriptionById(...args)
+    );
+    this.subscrRouter.patch(
+      '/admin/:subscriptionId', (...args) => this.subscrController.updateSubscriptionById(...args)
+    );
+    this.subscrRouter.delete(
+      '/admin/:subscriptionId', (...args) => this.subscrController.deleteSubscriptionById(...args)
     );
   }
 }

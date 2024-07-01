@@ -21,13 +21,18 @@ class PostRouter extends AbstractRouter {
   }
 
   protected override setupRouter(): void {
-    this.postRouter.use(authGuard);
-    this.postRouter.get('/', (...args) => this.postController.getAllUserPosts(...args));
-    this.postRouter.get('/:postTitle', (...args) => this.postController.getPostByTitle(...args));
-    this.postRouter.post('/', (...args) => this.postController.createPost(...args));
-    this.postRouter.put('/:postTitle', (...args) => this.postController.updatePostByTitle(...args));
-    this.postRouter.patch('/:postTitle', (...args) => this.postController.updatePostByTitle(...args));
-    this.postRouter.delete('/:postTitle', (...args) => this.postController.deletePostByTitle(...args));
+    this.postRouter.use('/public', authGuard);
+    this.postRouter.get('/public', (...args) => this.postController.getAllUserPostsByUserId(...args));
+    this.postRouter.post('/public', (...args) => this.postController.createPost(...args));
+    this.postRouter.get('/public/:postTitle', (...args) => this.postController.getUserPostByTitle(...args));
+    this.postRouter.patch('/public/:postTitle', (...args) => this.postController.updateUserPostByTitle(...args));
+    this.postRouter.delete('/public/:postTitle', (...args) => this.postController.deleteUserPostByTitle(...args));
+
+    this.postRouter.use('/admin', authAdminGuard);
+    this.postRouter.get('/admin', (...args) => this.postController.getAllUsersPosts(...args));
+    this.postRouter.get('/admin/:postId', (...args) => this.postController.getPostById(...args));
+    this.postRouter.patch('/admin/:postId', (...args) => this.postController.updatePostById(...args));
+    this.postRouter.delete('/admin/:postId', (...args) => this.postController.deletePostById(...args));
   }
 }
 export default PostRouter;

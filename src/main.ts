@@ -26,7 +26,8 @@ async function bootstrap() {
   const authService = dependencyContainer.getInstance<AuthService>('authService');
 
   await authService.deleteAllNonActivatedAccounts();
-  authService.scheduleDailyCleanup();
+  await authService.deleteAllVerificationTokens();
+  authService.scheduleDailyCleanupNotVerifData();
 
   process.env.CUR_URL = process.env.NODE_ENV === 'development' ?
     `${process.env.URL_DEV}:${port}` : process.env.URL_PROD;

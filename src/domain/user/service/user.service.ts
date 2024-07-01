@@ -1,33 +1,23 @@
 import { Op } from 'sequelize';
 import { NotFound, Forbidden } from 'http-errors';
 import IUserRegister from '../../auth/validation/interface/user.register.interface';
-import IUserUpdate from '../validation/interface/user.update.interface';
+import IUserUpdateAuth from '../../auth/validation/interface/user.auth.update.interface';
+import IUserPrivateUpdate from '../validation/interface/update/private/user.private.update.interface';
+import IUserPublicUpdate from '../validation/interface/update/public/user.public.update.interface';
 import User from '../../../database/models/user/user.model';
 import UserContact from '../../../database/models/user/user.contact.model';
 import Post from '../../../database/models/post/post.model';
-import Subscription from '../../../database/models/subscription/subscription.model';
-import CryptoProvider from '../../../utils/lib/crypto/crypto.provider';
 
 class UserService {
-  private readonly cryptoProvider: CryptoProvider;
-
   private readonly userAssociations = [
     { model: Post, as: 'posts' },
-    { model: UserContact, as: 'contacts' },
-    {
-      model: Subscription,
-      as: 'subscribers'
-    }
+    { model: UserContact, as: 'contacts' }
   ];
 
   private readonly publicUserData = [
     'name',
     'email'
   ];
-
-  constructor(cryptoProvider: CryptoProvider) {
-    this.cryptoProvider = cryptoProvider;
-  }
 
   public async getAllUsers(searchSubstring: string): Promise<User[]> {
     let users = [];
@@ -65,6 +55,18 @@ class UserService {
     );
   }
 
+  public async getAllUsersWithVerifToken(): Promise<User[]> {
+    return (
+      await User.findAll({
+        where: {
+          verifToken: {
+            [Op.ne]: null
+          }
+        }
+      })
+    );
+  }
+
   public async getUserById(userId: string, includeAssociations = true, isPublicData = false): Promise<User> {
     let user;
 
@@ -88,6 +90,22 @@ class UserService {
 
     if (!user) {
       throw new NotFound(`User with id: ${userId} - is not found`);
+    }
+
+    return user;
+  }
+
+  public async getUserByName(userName: string): Promise<User> {
+    const user = await User.findOne({
+      where: { name: userName }
+    });
+
+    if (user && !user.isActivated) {
+      throw new Forbidden(`Forbidden - user with name: ${userName} is not activated`);
+    }
+
+    if (!user) {
+      throw new NotFound(`User with name: ${userName} - is not found`);
     }
 
     return user;
@@ -122,7 +140,6 @@ class UserService {
   }
 
   public async createUser(userDataCreate: IUserRegister): Promise<User> {
-    userDataCreate.password = await this.cryptoProvider.hashStringBySHA256(userDataCreate.password);
     const newUser = await User.create({
       ...userDataCreate
     });
@@ -141,9 +158,15 @@ class UserService {
     return createdUser;
   }
 
+  public async updateUserAuthData(user: User, newUserData: IUserUpdateAuth): Promise<User> {
+    Object.assign(user, newUserData);
+    await user.save();
+    return user;
+  }
+
   public async updateUserById(
     userId: string,
-    newUserData: IUserUpdate,
+    newUserData: IUserPrivateUpdate,
     includeAssociations = true
   ): Promise<User> {
     const user = await this.getUserById(userId, includeAssociations);
@@ -153,8 +176,17 @@ class UserService {
     return user;
   }
 
+  public async updateUser(user: User, newUserData: IUserPublicUpdate): Promise<User> {
+    Object.assign(user, newUserData);
+    await user.save();
+
+    return (
+      await this.getUserById(user.id, false, true)
+    );
+  }
+
   public async deleteUserById(userId: string): Promise<void> {
-    const user = await this.getUserById(userId);
+    const user = await this.getUserById(userId, false);
     await user.destroy();
   }
 }

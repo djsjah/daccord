@@ -1,17 +1,20 @@
 import { NextFunction, Request, Response } from 'express';
 import { HttpError } from 'http-errors';
+import DomainController from '../domain.controller.abstract';
 import UserAuthSchema from './validation/schema/user.auth.schema';
 import UserRegisterSchema from './validation/schema/user.register.schema';
 import MailerTransporter from '../../utils/lib/mailer/mailer.transporter';
 import UserService from '../user/service/user.service';
 import CryptoProvider from '../../utils/lib/crypto/crypto.provider';
 
-class AuthController {
+class AuthController extends DomainController {
   constructor(
     private readonly mailerTransporter: MailerTransporter,
     private readonly cryptoProvider: CryptoProvider,
     private readonly userService: UserService
-  ) { }
+  ) {
+    super();
+  }
 
   public async signin(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
@@ -60,6 +63,7 @@ class AuthController {
 
       const verifToken = this.cryptoProvider.generateSecureVerificationToken();
       const verifLink = process.env.CUR_URL + `/auth/signup/verifyUserEmail?token=${verifToken}`;
+      userDataRegister.password = await this.cryptoProvider.hashStringBySHA256(userDataRegister.password);
 
       await this.userService.createUser({
         ...userDataRegister,
@@ -91,7 +95,7 @@ class AuthController {
     }
   }
 
-  public async verifyUserEmail(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+  public override async verifyUserEmail(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const { token } = req.query;
       const user = await this.userService.getUserByVerifToken(token as string);
@@ -100,15 +104,10 @@ class AuthController {
         const verifAdminToken = this.cryptoProvider.generateSecureVerificationToken();
         const verifAdminLink = process.env.CUR_URL + `/auth/signup/verifyAdminRole?token=${verifAdminToken}`;
 
-        await this.userService.updateUserById(user.id, {
-          name: user.name,
-          role: 'user',
-          email: user.email,
-          password: user.password,
+        await this.userService.updateUserAuthData(user, {
           isActivated: user.isActivated,
-          verifToken: verifAdminToken,
-          rating: user.rating
-        }, false);
+          verifToken: verifAdminToken
+        });
 
         await this.mailerTransporter.sendMailByTransporter({
           to: process.env.ADMIN_EMAIL,
@@ -120,15 +119,10 @@ class AuthController {
         });
       }
       else {
-        await this.userService.updateUserById(user.id, {
-          name: user.name,
-          role: 'user',
-          email: user.email,
-          password: user.password,
+        await this.userService.updateUserAuthData(user, {
           isActivated: true,
-          verifToken: null,
-          rating: user.rating
-        }, false);
+          verifToken: null
+        });
       }
 
       return res.redirect(process.env.CUR_URL + '/api');
@@ -149,15 +143,10 @@ class AuthController {
       const { token } = req.query;
       const user = await this.userService.getUserByVerifToken(token as string);
 
-      await this.userService.updateUserById(user.id, {
-        name: user.name,
-        role: 'admin',
-        email: user.email,
-        password: user.password,
+      await this.userService.updateUserAuthData(user, {
         isActivated: true,
-        verifToken: null,
-        rating: user.rating
-      }, false);
+        verifToken: null
+      });
 
       await this.mailerTransporter.sendMailByTransporter({
         to: user.email,

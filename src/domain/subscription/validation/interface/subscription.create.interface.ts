@@ -1,7 +1,6 @@
 interface ISubscriptionCreate {
   type: string;
   period?: string;
-  userId: string;
-  subscriberId: string;
+  userName: string;
 };
 export default ISubscriptionCreate;

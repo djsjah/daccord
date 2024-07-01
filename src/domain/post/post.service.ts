@@ -25,7 +25,33 @@ class PostService {
     private readonly notifGateway: NotificationGateway
   ) { }
 
-  public async getAllUserPosts(userId: string, searchSubstring: string): Promise<Post[]> {
+  public async getAllUsersPosts(searchSubstring: string): Promise<Post[]> {
+    let posts = [];
+    if (!searchSubstring) {
+      posts = await Post.findAll({
+        include: this.postAssociations
+      });
+    }
+    else {
+      posts = await Post.findAll({
+        where: {
+          [Op.or]: [
+            { title: { [Op.like]: `%${searchSubstring}%` } },
+            { content: { [Op.like]: `%${searchSubstring}%` } }
+          ]
+        },
+        include: this.postAssociations
+      });
+
+      if (posts.length === 0) {
+        throw new NotFound(`Posts by search substring: ${searchSubstring} - are not found`);
+      }
+    }
+
+    return posts;
+  }
+
+  public async getAllUserPostsByUserId(userId: string, searchSubstring: string): Promise<Post[]> {
     let posts = [];
     if (!searchSubstring) {
       posts = await Post.findAll({
@@ -48,23 +74,30 @@ class PostService {
       });
 
       if (posts.length === 0) {
-        throw new NotFound(`Posts by search substring: ${searchSubstring} - are not found`);
+        throw new NotFound(
+          `Posts by author id: ${userId} and search substring: ${searchSubstring} - are not found`
+        );
       }
     }
 
     return posts;
   }
 
-  public async getPostById(postId: string, isPublicData = false): Promise<Post> {
+  public async getPostById(postId: string, includeAssociations = true, isPublicData = false): Promise<Post> {
     let post;
 
-    if (!isPublicData) {
+    if (includeAssociations && !isPublicData) {
       post = await Post.findOne({
         where: { id: postId },
         include: this.postAssociations
       });
     }
-    else {
+    else if (!includeAssociations && !isPublicData) {
+      post = await Post.findOne({
+        where: { id: postId }
+      });
+    }
+    else if (!includeAssociations && isPublicData) {
       post = await Post.findOne({
         where: { id: postId },
         attributes: this.publicPostData
@@ -78,18 +111,25 @@ class PostService {
     return post;
   }
 
-  public async getPostByTitle(postTitle: string, isPublicData = true) {
+  public async getUserPostByTitle(userId: string, postTitle: string, isPublicData = true): Promise<Post> {
     let post;
 
     if (isPublicData) {
       post = await Post.findOne({
-        where: { title: postTitle },
+        where: {
+          title: postTitle,
+          authorId: userId
+        },
         attributes: this.publicPostData
       });
     }
     else {
       post = await Post.findOne({
-        where: { title: postTitle }
+        where: {
+          title: postTitle,
+          authorId: userId
+        },
+        include: this.postAssociations
       });
     }
 
@@ -106,20 +146,39 @@ class PostService {
     });
 
     return (
-      await this.getPostById(newPost.id, true)
+      await this.getPostById(newPost.id, false, true)
     );
   }
 
-  public async updatePostByTitle(postTitle: string, newPostData: IPostUpdate): Promise<Post> {
-    const post = await this.getPostByTitle(postTitle, false);
+  public async updatePostById(postId: string, newPostData: IPostUpdate): Promise<Post> {
+    const post = await this.getPostById(postId, false);
     Object.assign(post, newPostData);
     await post.save();
 
     return post;
   }
 
-  public async deletePostByTitle(postTitle: string): Promise<void> {
-    const post = await this.getPostByTitle(postTitle, false);
+  public async updateUserPostByTitle(
+    userId: string,
+    postTitle: string,
+    newPostData: IPostUpdate
+  ): Promise<Post> {
+    const post = await this.getUserPostByTitle(userId, postTitle, false);
+    Object.assign(post, newPostData);
+    await post.save();
+
+    return (
+      await this.getPostById(post.id, false, true)
+    );
+  }
+
+  public async deletePostById(postId: string): Promise<void> {
+    const post = await this.getPostById(postId);
+    await post.destroy();
+  }
+
+  public async deleteUserPostByTitle(userId: string, postTitle: string): Promise<void> {
+    const post = await this.getUserPostByTitle(userId, postTitle, false);
     await post.destroy();
   }
 }

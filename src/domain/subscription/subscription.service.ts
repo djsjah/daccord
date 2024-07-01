@@ -7,6 +7,13 @@ import UserService from '../user/service/user.service';
 
 class SubscriptionService {
   private readonly userService: UserService;
+  private readonly publicSubscrData = [
+    'id',
+    'type',
+    'period',
+    'userName',
+    'subscriberName'
+  ];
 
   constructor(userService: UserService) {
     this.userService = userService;
@@ -41,11 +48,12 @@ class SubscriptionService {
     const subscriptions = await Subscription.findAll({
       where: {
         userId
-      }
+      },
+      attributes: this.publicSubscrData
     });
 
     if (subscriptions.length === 0) {
-      throw new NotFound(`Subscriptions by user id: ${userId} - are not found`);
+      throw new NotFound(`Subscriptions are not found`);
     }
 
     return subscriptions;
@@ -55,20 +63,30 @@ class SubscriptionService {
     const subscriptions = await Subscription.findAll({
       where: {
         subscriberId
-      }
+      },
+      attributes: this.publicSubscrData
     });
 
     if (subscriptions.length === 0) {
-      throw new NotFound(`Subscriptions by subscriber id: ${subscriberId} - are not found`);
+      throw new NotFound(`Subscriptions are not found`);
     }
 
     return subscriptions;
   }
 
-  public async getSubscriptionById(subscriptionId: string): Promise<Subscription> {
-    const subscription = await Subscription.findOne({
-      where: { id: subscriptionId }
-    });
+  public async getSubscriptionById(subscriptionId: string, isPublicData = false): Promise<Subscription> {
+    let subscription;
+    if (isPublicData) {
+      subscription = await Subscription.findOne({
+        where: { id: subscriptionId },
+        attributes: this.publicSubscrData
+      });
+    }
+    else {
+      subscription = await Subscription.findOne({
+        where: { id: subscriptionId }
+      });
+    }
 
     if (!subscription) {
       throw new NotFound(`Subscription with id: ${subscriptionId} - is not found`);
@@ -77,14 +95,53 @@ class SubscriptionService {
     return subscription;
   }
 
-  public async createSubscription(subscriptionDataCreate: ISubscriptionCreate): Promise<Subscription> {
-    await this.userService.getUserById(subscriptionDataCreate.userId);
-    await this.userService.getUserById(subscriptionDataCreate.subscriberId);
+  public async getUserSubscription(subscriptionId: string, userId: string): Promise<Subscription> {
+    const subscription = await Subscription.findOne({
+      where: {
+        id: subscriptionId,
+        userId
+      }
+    });
+
+    if (!subscription) {
+      throw new NotFound(
+        `Subscription with id: ${subscriptionId} and with user id: ${userId} - is not found`
+      );
+    }
+
+    return subscription;
+  }
+
+  public async getSubscriberSubscription(subscriptionId: string, subscriberId: string): Promise<Subscription> {
+    const subscription = await Subscription.findOne({
+      where: {
+        id: subscriptionId,
+        subscriberId
+      }
+    });
+
+    if (!subscription) {
+      throw new NotFound(
+        `Subscription with id: ${subscriptionId} and with subscriber id: ${subscriberId} - is not found`
+      );
+    }
+
+    return subscription;
+  }
+
+  public async createSubscriptionAsSubscriber(
+    subscriberName: string,
+    subscriptionDataCreate: ISubscriptionCreate
+  ): Promise<Subscription> {
+    const user = await this.userService.getUserByName(subscriptionDataCreate.userName);
+    const subscription = await Subscription.create({
+      ...subscriptionDataCreate,
+      subscriberName,
+      userId: user.id
+    });
 
     return (
-      await Subscription.create({
-        ...subscriptionDataCreate
-      })
+      await this.getSubscriptionById(subscription.id, true)
     );
   }
 
@@ -101,6 +158,16 @@ class SubscriptionService {
 
   public async deleteSubscriptionById(subscriptionId: string): Promise<void> {
     const subscription = await this.getSubscriptionById(subscriptionId);
+    await subscription.destroy();
+  }
+
+  public async deleteUserSubscription(subscriptionId: string, userId: string): Promise<void> {
+    const subscription = await this.getUserSubscription(subscriptionId, userId);
+    await subscription.destroy();
+  }
+
+  public async deleteSubscriberSubscription(subscriptionId: string, subscriberId: string): Promise<void> {
+    const subscription = await this.getSubscriberSubscription(subscriptionId, subscriberId);
     await subscription.destroy();
   }
 }

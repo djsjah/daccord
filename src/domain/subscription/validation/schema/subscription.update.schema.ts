@@ -2,7 +2,7 @@ import Joi, { ObjectSchema } from 'joi';
 import ISubscriptionUpdate from '../interface/subscription.update.interface';
 
 const SubscriptionUpdateSchema: ObjectSchema<ISubscriptionUpdate> = Joi.object({
-  type: Joi.string().required(),
-  period: Joi.string().isoDate().required()
+  type: Joi.string().optional(),
+  period: Joi.string().isoDate().optional()
 });
 export default SubscriptionUpdateSchema;

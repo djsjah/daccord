@@ -31,6 +31,18 @@ class Subscription extends Model {
   })
   period?: Date;
 
+  @Column({
+    type: DataType.STRING,
+    allowNull: false
+  })
+  userName!: string;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: false
+  })
+  subscriberName!: string;
+
   @ForeignKey(() => User)
   @Column({
     type: DataType.UUID

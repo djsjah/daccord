@@ -28,6 +28,7 @@ class UserContact extends Model {
 
   @Column({
     type: DataType.STRING,
+    unique: true,
     allowNull: false
   })
   value!: string;
