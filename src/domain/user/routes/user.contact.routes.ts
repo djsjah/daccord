@@ -27,26 +27,17 @@ class UserContactRouter extends AbstractRouter {
       '/public', (...args) => this.userContactController.getAllUserContactsByUserId(...args)
     );
     this.userContactRouter.get(
-      '/public/:userContactValue', (...args) => this.userContactController.getUserContactByValue(...args)
+      '/public/:userContactId', (...args) => this.userContactController.getUserContactById(...args)
     );
     this.userContactRouter.patch(
-      '/public/:userContactValue', (...args) => this.userContactController.updateUserContactByValue(...args)
+      '/public/:userContactId', (...args) => this.userContactController.updateUserContactById(...args)
     );
     this.userContactRouter.delete(
-      '/public/:userContactValue', (...args) => this.userContactController.deleteUserContactByValue(...args)
+      '/public/:userContactId', (...args) => this.userContactController.deleteUserContactById(...args)
     );
 
     this.userContactRouter.use('/admin', authAdminGuard);
     this.userContactRouter.get('/admin', (...args) => this.userContactController.getAllUsersContacts(...args));
-    this.userContactRouter.get(
-      '/admin/:userContactId', (...args) => this.userContactController.getUserContactById(...args)
-    );
-    this.userContactRouter.patch(
-      '/admin/:userContactId', (...args) => this.userContactController.updateUserContactById(...args)
-    );
-    this.userContactRouter.delete(
-      '/admin/:userContactId', (...args) => this.userContactController.deleteUserContactById(...args)
-    );
   }
 }
 export default UserContactRouter;

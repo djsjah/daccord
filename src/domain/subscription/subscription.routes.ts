@@ -22,32 +22,35 @@ class SubscriptionRouter extends AbstractRouter {
 
   protected override setupRouter(): void {
     this.subscrRouter.use('/public', authGuard);
-    this.subscrRouter.get('/public/user', (...args) => this.subscrController.getAllSubscriptionsByUserId(...args));
+    this.subscrRouter.get(
+      '/public/user', (...args) => this.subscrController.getAllSubscriptionsByUserId(...args)
+    );
     this.subscrRouter.get(
       '/public/subscriber', (...args) => this.subscrController.getAllSubscriptionsBySubscriberId(...args)
+    );
+    this.subscrRouter.get(
+      '/public/user/:subscriptionId', (...args) => this.subscrController.getUserSubscriptionById(...args)
+    );
+    this.subscrRouter.get(
+      '/public/subscriber/:subscriptionId',
+      (...args) => this.subscrController.getSubscriberSubscriptionById(...args)
     );
     this.subscrRouter.post(
       '/public', (...args) => this.subscrController.createSubscriptionAsSubscriber(...args)
     );
     this.subscrRouter.delete(
       '/public/user/:subscriptionId',
-      (...args) => this.subscrController.deleteUserSubscription(...args)
+      (...args) => this.subscrController.deleteUserSubscriptionById(...args)
     );
     this.subscrRouter.delete(
       '/public/subscriber/:subscriptionId',
-      (...args) => this.subscrController.deleteSubscriberSubscription(...args)
+      (...args) => this.subscrController.deleteSubscriberSubscriptionById(...args)
     );
 
     this.subscrRouter.use('/admin', authAdminGuard);
     this.subscrRouter.get('/admin', (...args) => this.subscrController.getAllSubscriptions(...args));
-    this.subscrRouter.get(
-      '/admin/:subscriptionId', (...args) => this.subscrController.getSubscriptionById(...args)
-    );
     this.subscrRouter.patch(
       '/admin/:subscriptionId', (...args) => this.subscrController.updateSubscriptionById(...args)
-    );
-    this.subscrRouter.delete(
-      '/admin/:subscriptionId', (...args) => this.subscrController.deleteSubscriptionById(...args)
     );
   }
 }

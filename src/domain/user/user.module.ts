@@ -18,7 +18,7 @@ class UserModule {
 
   constructor() {
     this.userService = new UserService();
-    this.userContactService = new UserContactService(this.userService);
+    this.userContactService = new UserContactService();
 
     this.userController = new UserController(
       this.userService,

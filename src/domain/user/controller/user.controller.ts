@@ -117,7 +117,7 @@ class UserController extends DomainController {
           <p>Please confirm your new email by clicking on the link: <strong><a style="text-decoration: underline;" href="${verifLink}">Change your email</a></strong></p>`
         });
 
-        await this.userContactService.createUserContactByUserId(user.id, {
+        await this.userContactService.createUserContactByUserId(user, {
           type: 'newEmail',
           value: newUserData.email
         });
@@ -173,7 +173,7 @@ class UserController extends DomainController {
     try {
       const { token } = req.query;
       const user = await this.userService.getUserByVerifToken(token as string);
-      const userContacts = await this.userContactService.getAllUserContactsByUserId(user.id, 'newEmail');
+      const userContacts = await this.userContactService.getAllUserContactsByUserId(user, 'newEmail');
       const newUserEmail = userContacts[0].value;
 
       await this.userService.updateUserAuthData(user, {

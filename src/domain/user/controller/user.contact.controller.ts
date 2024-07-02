@@ -1,6 +1,8 @@
 import { NextFunction, Request, Response } from 'express';
-import { UserGetByStringSchema, UserGetByIdSchema } from '../validation/schema/user.get.schema';
-import UserContactSchema from '../validation/schema/user.contact.schema';
+import { UserGetByIdSchema } from '../validation/schema/user.get.schema';
+import User from '../../../database/models/user/user.model';
+import UserContactCreateSchema from '../validation/schema/user.contact.create.schema';
+import UserContactUpdateSchema from '../validation/schema/update/user.contact.update.schema';
 import UserContactService from '../service/user.contact.service';
 
 class UserContactController {
@@ -14,6 +16,7 @@ class UserContactController {
     try {
       const searchSubstring = req.query.search || '';
       const userContacts = await this.userContactService.getAllUsersContacts(searchSubstring as string);
+
       return res.status(200).json({
         status: 200,
         data: userContacts,
@@ -32,22 +35,16 @@ class UserContactController {
   ): Promise<Response | void> {
     try {
       const searchSubstring = req.query.search || '';
-      const userId = req.session.user?.id || '';
-      const { error } = UserGetByIdSchema.validate(userId);
-
-      if (error) {
-        return res.status(422).send(`Validation error: ${error.details[0].message}`);
-      }
-
+      const user = req.session.user as User;
       const userContacts = await this.userContactService.getAllUserContactsByUserId(
-        userId,
+        user,
         searchSubstring as string
       );
 
       return res.status(200).json({
         status: 200,
         data: userContacts,
-        message: `List of all your contacts`
+        message: "List of all your contacts"
       });
     }
     catch (err) {
@@ -64,26 +61,13 @@ class UserContactController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      const userContact = await this.userContactService.getUserContactById(userContactId);
-      return res.status(200).json({ status: 200, data: userContact, message: "User contact details" });
-    }
-    catch (err) {
-      next(err);
-    }
-  }
-
-  public async getUserContactByValue(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
-    try {
-      const userContactValue = req.params.userContactValue;
-      const { error } = UserGetByStringSchema.validate(userContactValue);
-
-      if (error) {
-        return res.status(422).send(`Validation error: ${error.details[0].message}`);
-      }
-
-      const userId = req.session.user?.id || '';
-      const userContact = await this.userContactService.getUserContactByValue(userId, userContactValue);
-      return res.status(200).json({ status: 200, data: userContact, message: "User contact details" });
+      const user = req.session.user as User;
+      const userContact = await this.userContactService.getUserContactById(user, userContactId);
+      return res.status(200).json({
+        status: 200,
+        data: userContact,
+        message: `Сontact details with id: ${userContact.id}`
+      });
     }
     catch (err) {
       next(err);
@@ -93,20 +77,20 @@ class UserContactController {
   public async createUserContact(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const userContactDataCreate = req.body;
-      const { error } = UserContactSchema.validate(userContactDataCreate);
+      const { error } = UserContactCreateSchema.validate(userContactDataCreate);
 
       if (error) {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      const userId = req.session.user?.id || '';
+      const user = req.session.user as User;
       const newUserContact = await this.userContactService.createUserContactByUserId(
-        userId,
+        user,
         userContactDataCreate
       );
 
       return res.status(201).location(`/api/posts/${newUserContact.id}`).json(
-        { status: 201, data: newUserContact, message: "User contact successfully created" }
+        { status: 201, data: newUserContact, message: "Сontact successfully created" }
       );
     }
     catch (err) {
@@ -128,13 +112,15 @@ class UserContactController {
       }
 
       const newUserContactData = req.body;
-      const newUserContactDataValid = UserContactSchema.validate(newUserContactData);
+      const newUserContactDataValid = UserContactUpdateSchema.validate(newUserContactData);
 
       if (newUserContactDataValid.error) {
         return res.status(422).send(`Validation error: ${newUserContactDataValid.error.details[0].message}`);
       }
 
+      const user = req.session.user as User;
       const updatedUserContact = await this.userContactService.updateUserContactById(
+        user,
         userContactId,
         newUserContactData
       );
@@ -142,45 +128,7 @@ class UserContactController {
       return res.status(200).json({
         status: 200,
         data: updatedUserContact,
-        message: "User contact successfully updated"
-      });
-    }
-    catch (err) {
-      next(err);
-    }
-  }
-
-  public async updateUserContactByValue(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<Response | void> {
-    try {
-      const userContactValue = req.params.userContactValue;
-      const userContactValueValid = UserGetByStringSchema.validate(userContactValue);
-
-      if (userContactValueValid.error) {
-        return res.status(422).send(`Validation error: ${userContactValueValid.error.details[0].message}`);
-      }
-
-      const newUserContactData = req.body;
-      const newUserContactDataValid = UserContactSchema.validate(newUserContactData);
-
-      if (newUserContactDataValid.error) {
-        return res.status(422).send(`Validation error: ${newUserContactDataValid.error.details[0].message}`);
-      }
-
-      const userId = req.session.user?.id || '';
-      const updatedUserContact = await this.userContactService.updateUserContactByValue(
-        userId,
-        userContactValue,
-        newUserContactData
-      );
-
-      return res.status(200).json({
-        status: 200,
-        data: updatedUserContact,
-        message: "User contact successfully updated"
+        message: "Сontact successfully updated"
       });
     }
     catch (err) {
@@ -201,30 +149,9 @@ class UserContactController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      await this.userContactService.deleteUserContactById(userContactId);
-      return res.status(200).json({ status: 200, message: "User contact successfully deleted" });
-    }
-    catch (err) {
-      next(err);
-    }
-  }
-
-  public async deleteUserContactByValue(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<Response | void> {
-    try {
-      const userContactValue = req.params.userContactValue;
-      const { error } = UserGetByStringSchema.validate(userContactValue);
-
-      if (error) {
-        return res.status(422).send(`Validation error: ${error.details[0].message}`);
-      }
-
-      const userId = req.session.user?.id || '';
-      await this.userContactService.deleteUserContactByValue(userId, userContactValue);
-      return res.status(200).json({ status: 200, message: "User contact successfully deleted" });
+      const user = req.session.user as User;
+      await this.userContactService.deleteUserContactById(user, userContactId);
+      return res.status(200).json({ status: 200, message: "Сontact successfully deleted" });
     }
     catch (err) {
       next(err);

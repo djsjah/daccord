@@ -24,15 +24,12 @@ class PostRouter extends AbstractRouter {
     this.postRouter.use('/public', authGuard);
     this.postRouter.get('/public', (...args) => this.postController.getAllUserPostsByUserId(...args));
     this.postRouter.post('/public', (...args) => this.postController.createPost(...args));
-    this.postRouter.get('/public/:postTitle', (...args) => this.postController.getUserPostByTitle(...args));
-    this.postRouter.patch('/public/:postTitle', (...args) => this.postController.updateUserPostByTitle(...args));
-    this.postRouter.delete('/public/:postTitle', (...args) => this.postController.deleteUserPostByTitle(...args));
+    this.postRouter.get('/public/:postId', (...args) => this.postController.getPostById(...args));
+    this.postRouter.patch('/public/:postId', (...args) => this.postController.updatePostById(...args));
+    this.postRouter.delete('/public/:postId', (...args) => this.postController.deletePostById(...args));
 
     this.postRouter.use('/admin', authAdminGuard);
     this.postRouter.get('/admin', (...args) => this.postController.getAllUsersPosts(...args));
-    this.postRouter.get('/admin/:postId', (...args) => this.postController.getPostById(...args));
-    this.postRouter.patch('/admin/:postId', (...args) => this.postController.updatePostById(...args));
-    this.postRouter.delete('/admin/:postId', (...args) => this.postController.deletePostById(...args));
   }
 }
 export default PostRouter;

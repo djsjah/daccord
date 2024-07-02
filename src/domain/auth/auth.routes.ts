@@ -20,6 +20,7 @@ class AuthRouter extends AbstractRouter {
   }
 
   protected override setupRouter(): void {
+    this.authRouter.get('/', (...args) => this.authController.getAuthData(...args));
     this.authRouter.post('/signin', (...args) => this.authController.signin(...args));
     this.authRouter.post('/signup', (...args) => this.authController.signup(...args));
     this.authRouter.get('/signup/verifyUserEmail', (...args) => this.authController.verifyUserEmail(...args));

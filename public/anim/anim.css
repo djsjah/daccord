@@ -1,0 +1,82 @@
+/* main */
+
+@keyframes rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  25% {
+    transform: rotate(90deg);
+  }
+
+  50% {
+    transform: rotate(180deg);
+  }
+
+  75% {
+    transform: rotate(270deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes showElement {
+  0% {
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes hideElement {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes translateYToBottom {
+  0% {
+    transform: translateY(-20px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.rotate-anim {
+  animation: rotate 1.5s linear infinite;
+}
+
+.appear-anim {
+  animation: showElement 0.5s linear;
+  animation-fill-mode: forwards;
+}
+
+.hide-anim {
+  animation: hideElement 0.3s linear;
+}
+
+.modal-appear-anim {
+  animation: showElement 0.5s linear, translateYToBottom 0.5s linear;
+  animation-fill-mode: forwards;
+}
+
+.shift-y-bottom-anim {
+  animation: translateYToBottom 0.5s linear;
+}

@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
-import { PostGetByIdSchema, PostGetByTitleSchema } from './validation/schema/post.get.schema';
+import User from '../../database/models/user/user.model';
 import PostService from './post.service';
+import PostGetByIdSchema from './validation/schema/post.get.schema';
 import PostCreateSchema from './validation/schema/post.create.schema';
 import PostUpdateSchema from './validation/schema/post.update.schema';
 
@@ -11,7 +12,7 @@ class PostController {
     try {
       const searchSubstring = req.query.search || '';
       const posts = await this.postService.getAllUsersPosts(searchSubstring as string);
-      return res.status(200).json({ status: 200, data: posts, message: "List of all posts" });
+      return res.status(200).json({ status: 200, data: posts, message: "List of all posts of all users" });
     }
     catch (err) {
       next(err);
@@ -25,9 +26,10 @@ class PostController {
   ): Promise<Response | void> {
     try {
       const searchSubstring = req.query.search || '';
-      const userId = req.session.user?.id || '';
-      const posts = await this.postService.getAllUserPostsByUserId(userId, searchSubstring as string);
-      return res.status(200).json({ status: 200, data: posts, message: "List of all posts" });
+      const user = req.session.user as User;
+      const posts = await this.postService.getAllUserPostsByUserId(user, searchSubstring as string);
+
+      return res.status(200).json({status: 200, data: posts, message: "List of all your posts" });
     }
     catch (err) {
       next(err);
@@ -43,26 +45,14 @@ class PostController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      const post = await this.postService.getPostById(postId);
-      return res.status(200).json({ status: 200, data: post, message: "Post details" });
-    }
-    catch (err) {
-      next(err);
-    }
-  }
+      const user = req.session.user as User;
+      const post = await this.postService.getPostById(user, postId);
 
-  public async getUserPostByTitle(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
-    try {
-      const postTitle = req.params.postTitle;
-      const { error } = PostGetByTitleSchema.validate(postTitle);
-
-      if (error) {
-        return res.status(422).send(`Validation error: ${error.details[0].message}`);
-      }
-
-      const userId = req.session.user?.id || '';
-      const post = await this.postService.getUserPostByTitle(userId, postTitle);
-      return res.status(200).json({ status: 200, data: post, message: "Post details" });
+      return res.status(200).json({
+        status: 200,
+        data: post,
+        message: `Post details with id: ${post.id}`
+      });
     }
     catch (err) {
       next(err);
@@ -78,15 +68,17 @@ class PostController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      const userId = req.session.user?.id || '';
-      const newPost = await this.postService.createPost({
+      const user = req.session.user as User;
+      const newPost = await this.postService.createPost(user, {
         ...postDataCreate,
-        authorId: userId
+        authorId: user.id
       });
 
-      return res.status(201).location(`/api/posts/${newPost.id}`).json(
-        { status: 201, data: newPost, message: "Post successfully created" }
-      );
+      return res.status(201).location(`/api/posts/${newPost.id}`).json({
+        status: 201,
+        data: newPost,
+        message: "Post successfully created"
+      });
     }
     catch (err) {
       next(err);
@@ -109,32 +101,9 @@ class PostController {
         return res.status(422).send(`Validation error: ${newPostDataValid.error.details[0].message}`);
       }
 
-      const updatedPost = await this.postService.updatePostById(postId, newPostData);
-      return res.status(200).json({ status: 200, data: updatedPost, message: "Post successfully updated" });
-    }
-    catch (err) {
-      next(err);
-    }
-  }
+      const user = req.session.user as User;
+      const updatedPost = await this.postService.updatePostById(user, postId, newPostData);
 
-  public async updateUserPostByTitle(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
-    try {
-      const postTitle = req.params.postTitle;
-      const postTitleValid = PostGetByTitleSchema.validate(postTitle);
-
-      if (postTitleValid.error) {
-        return res.status(422).send(`Validation error: ${postTitleValid.error.details[0].message}`);
-      }
-
-      const newPostData = req.body;
-      const newPostDataValid = PostUpdateSchema.validate(newPostData);
-
-      if (newPostDataValid.error) {
-        return res.status(422).send(`Validation error: ${newPostDataValid.error.details[0].message}`);
-      }
-
-      const userId = req.session.user?.id || '';
-      const updatedPost = await this.postService.updateUserPostByTitle(userId, postTitle, newPostData);
       return res.status(200).json({ status: 200, data: updatedPost, message: "Post successfully updated" });
     }
     catch (err) {
@@ -151,25 +120,9 @@ class PostController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      await this.postService.deletePostById(postId);
-      return res.status(200).json({ status: 200, message: "Post successfully deleted" });
-    }
-    catch (err) {
-      next(err);
-    }
-  }
+      const user = req.session.user as User;
+      await this.postService.deletePostById(user, postId);
 
-  public async deleteUserPostByTitle(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
-    try {
-      const postTitle = req.params.postTitle;
-      const { error } = PostGetByTitleSchema.validate(postTitle);
-
-      if (error) {
-        return res.status(422).send(`Validation error: ${error.details[0].message}`);
-      }
-
-      const userId = req.session.user?.id || '';
-      await this.postService.deleteUserPostByTitle(userId, postTitle);
       return res.status(200).json({ status: 200, message: "Post successfully deleted" });
     }
     catch (err) {

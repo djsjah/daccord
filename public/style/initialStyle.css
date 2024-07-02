@@ -35,13 +35,18 @@
   /* color */
 
   --amethyst: #9D5CD0;
-  --black: #000;
+  --athensGray: #F4F3F6;
+  --burntSienna: #F06A4D;
   --dustyGray: #999;
-  --heliotrope: #C283F3;
+  --electricViolet: #8052FF;
+  --graySuit: #C8C5D1;
+  --heliotrope: #9873FF;
+  --melrose: #B89EFF;
   --mineShaft: #333;
+  --mischka: #E7E5EB;
   --royalPurple: #7943A4;
   --silver: #cacaca;
-  --white: #fff;
+  --silverChalice: #B0B0B0;
 }
 
 html {

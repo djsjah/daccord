@@ -1,6 +1,6 @@
 import Joi, { ObjectSchema } from 'joi';
 import IUserRegister from '../interface/user.register.interface';
-import UserContactSchema from '../../../user/validation/schema/user.contact.schema';
+import UserContactCreateSchema from '../../../user/validation/schema/user.contact.create.schema';
 
 const UserRegisterSchema: ObjectSchema<IUserRegister> = Joi.object({
   name: Joi.string().min(2).max(15).required(),
@@ -9,6 +9,6 @@ const UserRegisterSchema: ObjectSchema<IUserRegister> = Joi.object({
   password: Joi.string().pattern(
     new RegExp('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$%*?&]).{8,}$')
   ).required(),
-  contacts: Joi.array().items(UserContactSchema).optional()
+  contacts: Joi.array().items(UserContactCreateSchema).optional()
 });
 export default UserRegisterSchema;

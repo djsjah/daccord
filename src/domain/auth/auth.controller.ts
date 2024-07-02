@@ -16,6 +16,24 @@ class AuthController extends DomainController {
     super();
   }
 
+  public async getAuthData(req: Request, res: Response, next: NextFunction) {
+    const user = req.session.user;
+
+    if (user) {
+      return res.status(200).json({
+        status: 200,
+        data: {
+          name: user.name,
+          role: user.role,
+          email: user.email
+        },
+        message: "User details"
+      });
+    }
+
+    return res.status(204).end();
+  }
+
   public async signin(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const userDataAuth = req.body;
@@ -151,7 +169,7 @@ class AuthController extends DomainController {
       await this.mailerTransporter.sendMailByTransporter({
         to: user.email,
         subject: 'The role of admin',
-        html: `<p>Hello, it's <strong>Daccord Service!</strong> Your role of the admin was confirmed! You can go to the main page and singin as an admin:</p><br>
+        html: `<p>Hello, it's <strong>Daccord Service!</strong> Your role of the admin was confirmed! You can go to the main page and sign in as an admin:</p><br>
         <p><strong><a style="text-decoration: underline;" href="${process.env.CUR_URL + '/api'}">Signin as admin</a></strong></p>`
       });
 

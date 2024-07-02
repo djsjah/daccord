@@ -1,10 +1,10 @@
-import IUserContact from '../../../user/validation/interface/user.contact.interface';
+import IUserContactCreate from "../../../user/validation/interface/user.contact.create.interface";
 
 interface IUserRegister {
   name: string;
   role: 'admin' | 'user';
   email: string;
   password: string;
-  contacts?: IUserContact[];
+  contacts?: IUserContactCreate[];
 };
 export default IUserRegister;

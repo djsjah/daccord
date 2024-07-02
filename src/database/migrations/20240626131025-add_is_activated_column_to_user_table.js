@@ -2,7 +2,7 @@ const { Sequelize } = require('sequelize')
 
 async function up({ context: queryInterface }) {
   const tableInfo = await queryInterface.describeTable('Users');
-  if (!tableInfo.verifToken) {
+  if (!tableInfo.isActivated) {
     await queryInterface.addColumn('Users', 'isActivated', {
       type: Sequelize.BOOLEAN,
       defaultValue: false,

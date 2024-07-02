@@ -177,8 +177,11 @@ class UserService {
   }
 
   public async updateUser(user: User, newUserData: IUserPublicUpdate): Promise<User> {
-    Object.assign(user, newUserData);
-    await user.save();
+    await User.update(newUserData, {
+      where: {
+        id: user.id
+      }
+    });
 
     return (
       await this.getUserById(user.id, false, true)
@@ -187,6 +190,10 @@ class UserService {
 
   public async deleteUserById(userId: string): Promise<void> {
     const user = await this.getUserById(userId, false);
+    await user.destroy();
+  }
+
+  public async deleteUser(user: User): Promise<void> {
     await user.destroy();
   }
 }

@@ -3,6 +3,20 @@ info:
   title: REST API for Users and Posts Database
   version: 1.0
 paths:
+  /auth:
+    get:
+      summary: Get authorized user data
+      tags:
+        - auth
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '204':
+          description: User is not authorized
   /auth/signin:
     post:
       summary: Login to account
@@ -339,21 +353,22 @@ paths:
           description: Unprocessable entity
         '500':
           description: Internal server error
-  /api/users/contacts/public/{userContactValue}:
+  /api/users/contacts/public/{userContactId}:
     get:
-      summary: Get a user contact by value
+      summary: Get a user contact by id
       tags:
         - users contacts
       security:
         - CookieAuth: []
       parameters:
-        - name: userContactValue
+        - name: userContactId
           in: path
           required: true
           schema:
             type: string
+            format: uuid
           description: |
-            User Contact Value. Example: `+7 982 408 31 75`
+            User Contact ID. Example: `93243b0e-6fbf-4a68-a6c1-6da4b4e3c3e4`
       responses:
         '200':
           description: User contact details
@@ -372,19 +387,20 @@ paths:
         '500':
           description: Internal server error
     patch:
-      summary: Update a user contact by value
+      summary: Update a user contact by id
       tags:
         - users contacts
       security:
         - CookieAuth: []
       parameters:
-        - name: userContactValue
+        - name: userContactId
           in: path
           required: true
           schema:
             type: string
+            format: uuid
           description: |
-            User Contact Value. Example: `+7 982 408 31 75`
+            User Contact ID. Example: `93243b0e-6fbf-4a68-a6c1-6da4b4e3c3e4`
       requestBody:
         required: true
         content:
@@ -394,8 +410,8 @@ paths:
             examples:
               Example The Only One Possible Properties In The Request Body:
                 value:
-                  type: 'email'
-                  value: 'st1035@mail.ru'
+                  type: 'telegram'
+                  value: '@zira839'
       responses:
         '200':
           description: User contact successfully updated
@@ -414,19 +430,20 @@ paths:
         '500':
           description: Internal server error
     delete:
-      summary: Delete a user contact by value
+      summary: Delete a user contact by id
       tags:
         - users contacts
       security:
         - CookieAuth: []
       parameters:
-        - name: userContactValue
+        - name: userContactId
           in: path
           required: true
           schema:
             type: string
+            format: uuid
           description: |
-            User Contact Value. Example: `+7 982 408 31 75`
+            User Contact ID. Example: `93243b0e-6fbf-4a68-a6c1-6da4b4e3c3e4`
       responses:
         '200':
           description: User contact successfully deleted
@@ -468,110 +485,6 @@ paths:
           description: Unauthorized - you must sign in as admin
         '404':
           description: Users contacts are not found
-        '422':
-          description: Unprocessable entity
-        '500':
-          description: Internal server error
-  /api/users/contacts/admin/{userContactId}:
-    get:
-      summary: Get a user contact by id (For admins)
-      tags:
-        - users contacts
-      security:
-        - CookieAuth: []
-      parameters:
-        - name: userContactId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-          description: |
-            User Contact ID. Example: `93243b0e-6fbf-4a68-a6c1-6da4b4e3c3e4`
-      responses:
-        '200':
-          description: User contact details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserContact'
-        '400':
-          description: Bad request
-        '401':
-          description: Unauthorized - you must sign in as admin
-        '404':
-          description: User contact is not found
-        '422':
-          description: Unprocessable entity
-        '500':
-          description: Internal server error
-    patch:
-      summary: Update a user contact by id (For admins)
-      tags:
-        - users contacts
-      security:
-        - CookieAuth: []
-      parameters:
-        - name: userContactId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-          description: |
-            User Contact ID. Example: `93243b0e-6fbf-4a68-a6c1-6da4b4e3c3e4`
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/IUserContact'
-            examples:
-              Example The Only One Possible Properties In The Request Body:
-                value:
-                  type: 'telegram'
-                  value: '@zira839'
-      responses:
-        '200':
-          description: User contact successfully updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserContact'
-        '400':
-          description: Bad request
-        '401':
-          description: Unauthorized - you must sign in as admin
-        '404':
-          description: User contact is not found
-        '422':
-          description: Unprocessable entity
-        '500':
-          description: Internal server error
-    delete:
-      summary: Delete a user contact by id (For admins)
-      tags:
-        - users contacts
-      security:
-        - CookieAuth: []
-      parameters:
-        - name: userContactId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-          description: |
-            User Contact ID. Example: `93243b0e-6fbf-4a68-a6c1-6da4b4e3c3e4`
-      responses:
-        '200':
-          description: User contact successfully deleted
-        '400':
-          description: Bad request
-        '401':
-          description: Unauthorized - you must sign in as admin
-        '404':
-          description: User contact is not found
         '422':
           description: Unprocessable entity
         '500':
@@ -656,21 +569,21 @@ paths:
           description: Unprocessable entity
         '500':
           description: Internal server error
-  /api/posts/public/{postTitle}:
+  /api/posts/public/{postId}:
     get:
-      summary: Get a post by title
+      summary: Get a post by id
       tags:
         - posts
       security:
         - CookieAuth: []
       parameters:
-        - name: postTitle
+        - name: postId
           in: path
           required: true
           schema:
             type: string
           description: |
-            Post Title. Example: `Властелин колец - книги против фильмов`
+            Post Id. Example: `550e8400-e29b-41d4-a716-446655440000`
       responses:
         '200':
           description: Post details
@@ -689,19 +602,19 @@ paths:
         '500':
           description: Internal server error
     patch:
-      summary: Update a post by title
+      summary: Update a post by id
       tags:
         - posts
       security:
         - CookieAuth: []
       parameters:
-        - name: postTitle
+        - name: postId
           in: path
           required: true
           schema:
             type: string
           description: |
-            Post Title. Example: `Властелин колец - книги против фильмов`
+            Post Id. Example: `550e8400-e29b-41d4-a716-446655440000`
       requestBody:
         required: true
         content:
@@ -736,19 +649,19 @@ paths:
         '500':
           description: Internal server error
     delete:
-      summary: Delete a post by title
+      summary: Delete a post by id
       tags:
         - posts
       security:
         - CookieAuth: []
       parameters:
-        - name: postTitle
+        - name: postId
           in: path
           required: true
           schema:
             type: string
           description: |
-            Post Title. Example: `Властелин колец - книги против фильмов`
+            Post Id. Example: `550e8400-e29b-41d4-a716-446655440000`
       responses:
         '200':
           description: Post successfully deleted
@@ -790,112 +703,6 @@ paths:
           description: Unauthorized - you must sign in as admin
         '404':
           description: Posts are not found
-        '422':
-          description: Unprocessable entity
-        '500':
-          description: Internal server error
-  /api/posts/admin/{postId}:
-    get:
-      summary: Get a post by id (For admins)
-      tags:
-        - posts
-      security:
-        - CookieAuth: []
-      parameters:
-        - name: postId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: |
-            Post Id. Example: `550e8400-e29b-41d4-a716-446655440000`
-      responses:
-        '200':
-          description: Post details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Post'
-        '400':
-          description: Bad request
-        '401':
-          description: Unauthorized - you must sign in as admin
-        '404':
-          description: Post is not found
-        '422':
-          description: Unprocessable entity
-        '500':
-          description: Internal server error
-    patch:
-      summary: Update a post by id (For admins)
-      tags:
-        - posts
-      security:
-        - CookieAuth: []
-      parameters:
-        - name: postId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: |
-            Post Id. Example: `550e8400-e29b-41d4-a716-446655440000`
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/IPostUpdate'
-            examples:
-              Example The Only One Possible Properties In The Request Body (All Properties Are Optional):
-                value:
-                  title: 'Властелин колец - книги против фильмов'
-                  access: 'public'
-                  content: 'Как-то в детстве я посмотрел фильм...'
-                  tags:
-                    - 'фильмы'
-                    - 'книги'
-                    - 'Властелин Колец'
-      responses:
-        '200':
-          description: Post successfully updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Post'
-        '400':
-          description: Bad request
-        '401':
-          description: Unauthorized - you must sign in as admin
-        '404':
-          description: Post is not found
-        '422':
-          description: Unprocessable entity
-        '500':
-          description: Internal server error
-    delete:
-      summary: Delete a post by id (For admins)
-      tags:
-        - posts
-      security:
-        - CookieAuth: []
-      parameters:
-        - name: postId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: |
-            Post Id. Example: `550e8400-e29b-41d4-a716-446655440000`
-      responses:
-        '200':
-          description: Post successfully deleted
-        '400':
-          description: Bad request
-        '401':
-          description: Unauthorized - you must sign in as admin
-        '404':
-          description: Post is not found
         '422':
           description: Unprocessable entity
         '500':
@@ -968,8 +775,40 @@ paths:
         '500':
           description: Internal server error
   /api/subscriptions/public/user/{subscriptionId}:
+    get:
+      summary: Get a user subscription by id
+      tags:
+        - subscriptions
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: |
+            Subscription ID. Example: `6dcd8f9a-3b7c-4e5f-ba9e-2f8a7f8f8f8f`
+      responses:
+        '200':
+          description: User subscription details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized - you must sign in
+        '404':
+          description: Subscriptions are not found
+        '422':
+          description: Unprocessable entity
+        '500':
+          description: Internal server error
     delete:
-      summary: Delete user subscription
+      summary: Delete a user subscription by id
       tags:
         - subscriptions
       security:
@@ -1021,8 +860,40 @@ paths:
         '500':
           description: Internal server error
   /api/subscriptions/public/subscriber/{subscriptionId}:
+    get:
+      summary: Get a subscriber subscription by id
+      tags:
+        - subscriptions
+      security:
+        - CookieAuth: []
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: |
+            Subscription ID. Example: `6dcd8f9a-3b7c-4e5f-ba9e-2f8a7f8f8f8f`
+      responses:
+        '200':
+          description: Subscriber subscription details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized - you must sign in
+        '404':
+          description: Subscriptions are not found
+        '422':
+          description: Unprocessable entity
+        '500':
+          description: Internal server error
     delete:
-      summary: Delete subscriber subscription
+      summary: Delete a subscriber subscription by id
       tags:
         - subscriptions
       security:
@@ -1082,38 +953,6 @@ paths:
         '500':
           description: Internal server error
   /api/subscriptions/admin/{subscriptionId}:
-    get:
-      summary: Get a subscription by id (For admins)
-      tags:
-        - subscriptions
-      security:
-        - CookieAuth: []
-      parameters:
-        - name: subscriptionId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-          description: |
-            SubscriptionId ID. Example: `0aa084eb-3ff2-419e-a0b9-29d2a3384e23`
-      responses:
-        '200':
-          description: Subscription details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Subscription'
-        '400':
-          description: Bad request
-        '401':
-          description: Unauthorized - you must sign in as admin
-        '404':
-          description: Subscription is not found
-        '422':
-          description: Unprocessable entity
-        '500':
-          description: Internal server error
     patch:
       summary: Update a subscription by id (For admins)
       tags:
@@ -1147,34 +986,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Subscription'
-        '400':
-          description: Bad request
-        '401':
-          description: Unauthorized - you must sign in as admin
-        '404':
-          description: Subscription is not found
-        '422':
-          description: Unprocessable entity
-        '500':
-          description: Internal server error
-    delete:
-      summary: Delete a subscription by id (For admins)
-      tags:
-        - subscriptions
-      security:
-        - CookieAuth: []
-      parameters:
-        - name: subscriptionId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-          description: |
-            Subscription ID. Example: `6dcd8f9a-3b7c-4e5f-ba9e-2f8a7f8f8f8f`
-      responses:
-        '200':
-          description: Subscription successfully deleted
         '400':
           description: Bad request
         '401':

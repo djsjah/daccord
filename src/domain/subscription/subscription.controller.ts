@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import User from '../../database/models/user/user.model';
 import SubscriptionGetByIdSchema from './validation/schema/subscription.get.schema';
 import SubscriptionCreateSchema from './validation/schema/subscription.create.schema';
 import SubscriptionUpdateSchema from './validation/schema/subscription.update.schema';
@@ -15,7 +16,11 @@ class SubscriptionController {
     try {
       const searchSubstring = req.query.search || '';
       const subscriptions = await this.subscriptionService.getAllSubscriptions(searchSubstring as string);
-      return res.status(200).json({ status: 200, data: subscriptions, message: "List of all subscriptions" });
+      return res.status(200).json({
+        status: 200,
+        data: subscriptions,
+        message: "List of all subscriptions of all users"
+      });
     }
     catch (err) {
       next(err);
@@ -28,19 +33,13 @@ class SubscriptionController {
     next: NextFunction
   ): Promise<Response | void> {
     try {
-      const userId = req.session.user?.id || '';
-      const { error } = SubscriptionGetByIdSchema.validate(userId);
-
-      if (error) {
-        return res.status(422).send(`Validation error: ${error.details[0].message}`);
-      }
-
-      const subscriptions = await this.subscriptionService.getAllSubscriptionsByUserId(userId);
+      const user = req.session.user as User;
+      const subscriptions = await this.subscriptionService.getAllSubscriptionsByUserId(user);
 
       return res.status(200).json({
         status: 200,
         data: subscriptions,
-        message: `List of all user subscriptions`
+        message: "List of all your subscriptions"
       });
     }
     catch (err) {
@@ -54,19 +53,13 @@ class SubscriptionController {
     next: NextFunction
   ): Promise<Response | void> {
     try {
-      const subscriberId = req.session.user?.id || '';
-      const { error } = SubscriptionGetByIdSchema.validate(subscriberId);
-
-      if (error) {
-        return res.status(422).send(`Validation error: ${error.details[0].message}`);
-      }
-
-      const subscriptions = await this.subscriptionService.getAllSubscriptionsBySubscriberId(subscriberId);
+      const subscriber = req.session.user as User;
+      const subscriptions = await this.subscriptionService.getAllSubscriptionsBySubscriberId(subscriber);
 
       return res.status(200).json({
         status: 200,
         data: subscriptions,
-        message: `List of all subscriber subscriptions`
+        message: "List of all your subscriptions"
       });
     }
     catch (err) {
@@ -74,7 +67,11 @@ class SubscriptionController {
     }
   }
 
-  public async getSubscriptionById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+  public async getUserSubscriptionById(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> {
     try {
       const subscriptionId = req.params.subscriptionId;
       const { error } = SubscriptionGetByIdSchema.validate(subscriptionId);
@@ -83,8 +80,43 @@ class SubscriptionController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      const subscriptions = await this.subscriptionService.getSubscriptionById(subscriptionId);
-      return res.status(200).json({ status: 200, data: subscriptions, message: "Subscription details" });
+      const user = req.session.user as User;
+      const subscription = await this.subscriptionService.getUserSubscriptionById(user, subscriptionId);
+
+      return res.status(200).json({
+        status: 200,
+        data: subscription,
+        message: `Subscription details with id ${subscription.id}`
+      });
+    }
+    catch (err) {
+      next(err);
+    }
+  }
+
+  public async getSubscriberSubscriptionById(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> {
+    try {
+      const subscriptionId = req.params.subscriptionId;
+      const { error } = SubscriptionGetByIdSchema.validate(subscriptionId);
+
+      if (error) {
+        return res.status(422).send(`Validation error: ${error.details[0].message}`);
+      }
+
+      const subscriber = req.session.user as User;
+      const subscription = await this.subscriptionService.getSubscriberSubscriptionById(
+        subscriber, subscriptionId
+      );
+
+      return res.status(200).json({
+        status: 200,
+        data: subscription,
+        message: `Subscription details with id ${subscription.id}`
+      });
     }
     catch (err) {
       next(err);
@@ -104,18 +136,20 @@ class SubscriptionController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      const subscriberName = req.session.user?.name || '';
-      const subscriberId = req.session.user?.id || '';
-      subscriptionDataCreate.subscriberId = subscriberId;
+      const subscriber = req.session.user as User;
+      subscriptionDataCreate.subscriberName = subscriber.name;
+      subscriptionDataCreate.subscriberId = subscriber.id;
 
       const newSubscription = await this.subscriptionService.createSubscriptionAsSubscriber(
-        subscriberName,
+        subscriber,
         subscriptionDataCreate
       );
 
-      return res.status(201).location(`/api/subscriptions/${newSubscription.id}`).json(
-        { status: 201, data: newSubscription, message: "Subscription successfully created" }
-      );
+      return res.status(201).location(`/api/subscriptions/${newSubscription.id}`).json({
+         status: 201,
+         data: newSubscription,
+         message: "Subscription successfully created"
+        });
     }
     catch (err) {
       next(err);
@@ -142,7 +176,9 @@ class SubscriptionController {
         return res.status(422).send(`Validation error: ${newSubscriptionDataValid.error.details[0].message}`);
       }
 
+      const user = req.session.user as User;
       const updatedSubscription = await this.subscriptionService.updateSubscriptionById(
+        user,
         subscriptionId,
         newSubscriptionData
       );
@@ -158,7 +194,7 @@ class SubscriptionController {
     }
   }
 
-  public async deleteSubscriptionById(
+  public async deleteUserSubscriptionById(
     req: Request,
     res: Response,
     next: NextFunction
@@ -171,7 +207,9 @@ class SubscriptionController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      await this.subscriptionService.deleteSubscriptionById(subscriptionId);
+      const user = req.session.user as User;
+      await this.subscriptionService.deleteUserSubscriptionById(user, subscriptionId);
+
       return res.status(200).json({ status: 200, message: "Subscription successfully deleted" });
     }
     catch (err) {
@@ -179,7 +217,7 @@ class SubscriptionController {
     }
   }
 
-  public async deleteUserSubscription(
+  public async deleteSubscriberSubscriptionById(
     req: Request,
     res: Response,
     next: NextFunction
@@ -192,30 +230,9 @@ class SubscriptionController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      const userId = req.session.user?.id || '';
-      await this.subscriptionService.deleteUserSubscription(subscriptionId, userId);
-      return res.status(200).json({ status: 200, message: "Subscription successfully deleted" });
-    }
-    catch (err) {
-      next(err);
-    }
-  }
+      const subscriber = req.session.user as User;
+      await this.subscriptionService.deleteSubscriberSubscriptionById(subscriber, subscriptionId);
 
-  public async deleteSubscriberSubscription(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<Response | void> {
-    try {
-      const subscriptionId = req.params.subscriptionId;
-      const { error } = SubscriptionGetByIdSchema.validate(subscriptionId);
-
-      if (error) {
-        return res.status(422).send(`Validation error: ${error.details[0].message}`);
-      }
-
-      const subscriberId = req.session.user?.id || '';
-      await this.subscriptionService.deleteSubscriberSubscription(subscriptionId, subscriberId);
       return res.status(200).json({ status: 200, message: "Subscription successfully deleted" });
     }
     catch (err) {

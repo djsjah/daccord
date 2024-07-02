@@ -1,5 +1,6 @@
 import { Op } from 'sequelize';
 import { NotFound } from 'http-errors';
+import User from '../../database/models/user/user.model';
 import ISubscriptionCreate from './validation/interface/subscription.create.interface';
 import ISubscriptionUpdate from './validation/interface/subscription.update.interface';
 import Subscription from '../../database/models/subscription/subscription.model';
@@ -21,6 +22,7 @@ class SubscriptionService {
 
   public async getAllSubscriptions(searchSubstring: string): Promise<Subscription[]> {
     let subscriptions = [];
+
     if (!searchSubstring) {
       subscriptions = await Subscription.findAll();
     }
@@ -44,47 +46,87 @@ class SubscriptionService {
     return subscriptions;
   }
 
-  public async getAllSubscriptionsByUserId(userId: string): Promise<Subscription[]> {
-    const subscriptions = await Subscription.findAll({
-      where: {
-        userId
-      },
-      attributes: this.publicSubscrData
-    });
+  public async getAllSubscriptionsByUserId(user: User): Promise<Subscription[]> {
+    let subscriptions: Subscription[] = [];
 
-    if (subscriptions.length === 0) {
-      throw new NotFound(`Subscriptions are not found`);
-    }
-
-    return subscriptions;
-  }
-
-  public async getAllSubscriptionsBySubscriberId(subscriberId: string): Promise<Subscription[]> {
-    const subscriptions = await Subscription.findAll({
-      where: {
-        subscriberId
-      },
-      attributes: this.publicSubscrData
-    });
-
-    if (subscriptions.length === 0) {
-      throw new NotFound(`Subscriptions are not found`);
-    }
-
-    return subscriptions;
-  }
-
-  public async getSubscriptionById(subscriptionId: string, isPublicData = false): Promise<Subscription> {
-    let subscription;
-    if (isPublicData) {
-      subscription = await Subscription.findOne({
-        where: { id: subscriptionId },
-        attributes: this.publicSubscrData
+    if (user.role === 'admin') {
+      subscriptions = await Subscription.findAll({
+        where: {
+          userId: user.id
+        }
       });
     }
     else {
+      subscriptions = await Subscription.findAll({
+        where: {
+          userId: user.id
+        },
+        attributes: this.publicSubscrData
+      });
+    }
+
+    if (subscriptions.length === 0) {
+      throw new NotFound(`Subscriptions are not found`);
+    }
+
+    return subscriptions;
+  }
+
+  public async getAllSubscriptionsBySubscriberId(subscriber: User): Promise<Subscription[]> {
+    let subscriptions;
+
+    if (subscriber.role === 'admin') {
+      subscriptions = await Subscription.findAll({
+        where: {
+          subscriberId: subscriber.id
+        }
+      });
+    }
+    else {
+      subscriptions = await Subscription.findAll({
+        where: {
+          subscriberId: subscriber.id
+        },
+        attributes: this.publicSubscrData
+      });
+    }
+
+    if (subscriptions.length === 0) {
+      throw new NotFound(`Subscriptions are not found`);
+    }
+
+    return subscriptions;
+  }
+
+  public async getUserSubscriptionById(
+    user: User,
+    subscriptionId: string,
+    isMainData: boolean = false
+  ): Promise<Subscription> {
+    let subscription;
+
+    if (user.role === 'admin') {
       subscription = await Subscription.findOne({
-        where: { id: subscriptionId }
+        where: {
+          id: subscriptionId
+        }
+      });
+    }
+    else if (user.role === 'user' && !isMainData) {
+      subscription = await Subscription.findOne({
+        where: {
+          id: subscriptionId,
+          userId: user.id
+        },
+        attributes: this.publicSubscrData
+      });
+    }
+    else if (user.role === 'user' && isMainData) {
+      subscription = await Subscription.findOne({
+        where: {
+          id: subscriptionId,
+          userId: user.id
+        }
       });
     }
 
@@ -95,79 +137,79 @@ class SubscriptionService {
     return subscription;
   }
 
-  public async getUserSubscription(subscriptionId: string, userId: string): Promise<Subscription> {
-    const subscription = await Subscription.findOne({
-      where: {
-        id: subscriptionId,
-        userId
-      }
-    });
+  public async getSubscriberSubscriptionById(
+    subscriber: User,
+    subscriptionId: string,
+    isMainData: boolean = false
+  ): Promise<Subscription> {
+    let subscription;
 
-    if (!subscription) {
-      throw new NotFound(
-        `Subscription with id: ${subscriptionId} and with user id: ${userId} - is not found`
-      );
+    if (subscriber.role === 'admin') {
+      subscription = await Subscription.findOne({
+        where: {
+          id: subscriptionId
+        }
+      });
+    }
+    else if (subscriber.role === 'user' && !isMainData) {
+      subscription = await Subscription.findOne({
+        where: {
+          id: subscriptionId,
+          subscriberId: subscriber.id
+        },
+        attributes: this.publicSubscrData
+      });
+    }
+    else if (subscriber.role === 'user' && isMainData) {
+      subscription = await Subscription.findOne({
+        where: {
+          id: subscriptionId,
+          subscriberId: subscriber.id
+        }
+      });
     }
 
-    return subscription;
-  }
-
-  public async getSubscriberSubscription(subscriptionId: string, subscriberId: string): Promise<Subscription> {
-    const subscription = await Subscription.findOne({
-      where: {
-        id: subscriptionId,
-        subscriberId
-      }
-    });
-
     if (!subscription) {
-      throw new NotFound(
-        `Subscription with id: ${subscriptionId} and with subscriber id: ${subscriberId} - is not found`
-      );
+      throw new NotFound(`Subscription with id: ${subscriptionId} - is not found`);
     }
 
     return subscription;
   }
 
   public async createSubscriptionAsSubscriber(
-    subscriberName: string,
+    subscriber: User,
     subscriptionDataCreate: ISubscriptionCreate
   ): Promise<Subscription> {
     const user = await this.userService.getUserByName(subscriptionDataCreate.userName);
     const subscription = await Subscription.create({
       ...subscriptionDataCreate,
-      subscriberName,
       userId: user.id
     });
 
     return (
-      await this.getSubscriptionById(subscription.id, true)
+      await this.getSubscriberSubscriptionById(subscriber, subscription.id)
     );
   }
 
   public async updateSubscriptionById(
+    user: User,
     subscriptionId: string,
     newSubscriptionData: ISubscriptionUpdate
   ): Promise<Subscription> {
-    const subscription = await this.getSubscriptionById(subscriptionId);
+    const subscription = await this.getUserSubscriptionById(user, subscriptionId);
     Object.assign(subscription, newSubscriptionData);
     await subscription.save();
 
     return subscription;
   }
 
-  public async deleteSubscriptionById(subscriptionId: string): Promise<void> {
-    const subscription = await this.getSubscriptionById(subscriptionId);
+  public async deleteUserSubscriptionById(user: User, subscriptionId: string): Promise<void> {
+    const subscription = await this.getUserSubscriptionById(user, subscriptionId, true);
     await subscription.destroy();
   }
 
-  public async deleteUserSubscription(subscriptionId: string, userId: string): Promise<void> {
-    const subscription = await this.getUserSubscription(subscriptionId, userId);
-    await subscription.destroy();
-  }
-
-  public async deleteSubscriberSubscription(subscriptionId: string, subscriberId: string): Promise<void> {
-    const subscription = await this.getSubscriberSubscription(subscriptionId, subscriberId);
+  public async deleteSubscriberSubscriptionById(subscriber: User, subscriptionId: string): Promise<void> {
+    const subscription = await this.getSubscriberSubscriptionById(subscriber, subscriptionId, true);
     await subscription.destroy();
   }
 }

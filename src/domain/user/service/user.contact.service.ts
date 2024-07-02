@@ -2,28 +2,27 @@ import { Op } from 'sequelize';
 import { NotFound } from 'http-errors';
 import User from '../../../database/models/user/user.model';
 import UserContact from '../../../database/models/user/user.contact.model';
-import IUserContact from '../validation/interface/user.contact.interface';
-import UserService from './user.service';
+import IUserContactCreate from '../validation/interface/user.contact.create.interface';
+import IUserContactUpdate from '../validation/interface/update/user.contact.update.interface';
 
 class UserContactService {
-  private readonly userService: UserService;
   private readonly userContactAssociations = [
     { model: User, as: 'user' }
   ];
 
   private readonly publicUserContactData = [
+    'id',
     'type',
     'value'
   ];
 
-  constructor(userService: UserService) {
-    this.userService = userService;
-  }
-
   public async getAllUsersContacts(searchSubstring: string): Promise<UserContact[]> {
     let userContacts = [];
+
     if (!searchSubstring) {
-      userContacts = await UserContact.findAll();
+      userContacts = await UserContact.findAll({
+        include: this.userContactAssociations
+      });
     }
     else {
       userContacts = await UserContact.findAll({
@@ -32,7 +31,8 @@ class UserContactService {
             { type: { [Op.like]: `%${searchSubstring}%` } },
             { value: { [Op.like]: `%${searchSubstring}%` } }
           ]
-        }
+        },
+        include: this.userContactAssociations
       });
 
       if (userContacts.length === 0) {
@@ -43,14 +43,13 @@ class UserContactService {
     return userContacts;
   }
 
-  public async getAllUserContactsByUserId(userId: string, searchSubstring: string = ''): Promise<UserContact[]> {
-    await this.userService.getUserById(userId);
+  public async getAllUserContactsByUserId(user: User, searchSubstring: string = ''): Promise<UserContact[]> {
+    let userContacts: UserContact[] = [];
 
-    let userContacts = [];
     if (!searchSubstring) {
       userContacts = await UserContact.findAll({
         where: {
-          userId
+          userId: user.id
         },
         attributes: this.publicUserContactData
       });
@@ -58,7 +57,7 @@ class UserContactService {
     else {
       userContacts = await UserContact.findAll({
         where: {
-          userId,
+          userId: user.id,
           [Op.or]: [
             { type: { [Op.like]: `%${searchSubstring}%` } },
             { value: { [Op.like]: `%${searchSubstring}%` } }
@@ -68,9 +67,7 @@ class UserContactService {
       });
 
       if (userContacts.length === 0) {
-        throw new NotFound(
-          `For user with id: ${userId}, contacts by search substring: ${searchSubstring} - are not found`
-        );
+        throw new NotFound(`User contacts by search substring: ${searchSubstring} - are not found`);
       }
     }
 
@@ -78,13 +75,13 @@ class UserContactService {
   }
 
   public async getUserContactById(
+    user: User,
     userContactId: string,
-    includeAssociations = true,
-    isPublicData = false
+    isMainData: boolean = false
   ): Promise<UserContact> {
     let userContact;
 
-    if (includeAssociations && !isPublicData) {
+    if (user.role === 'admin' && !isMainData) {
       userContact = await UserContact.findOne({
         where: {
           id: userContactId
@@ -92,105 +89,80 @@ class UserContactService {
         include: this.userContactAssociations
       });
     }
-    else if (!includeAssociations && !isPublicData) {
+    else if (user.role === 'admin' && isMainData) {
       userContact = await UserContact.findOne({
         where: {
           id: userContactId
         }
       });
     }
-    else if (!includeAssociations && isPublicData) {
+    else if (user.role === 'user' && !isMainData) {
       userContact = await UserContact.findOne({
         where: {
-          id: userContactId
+          id: userContactId,
+          userId: user.id
         },
         attributes: this.publicUserContactData
       });
     }
-
-    if (!userContact) {
-      throw new NotFound(`User contact with id: ${userContactId} - is not found`);
-    }
-
-    return userContact;
-  }
-
-  public async getUserContactByValue(userId: string, value: string, isPublicData = true): Promise<UserContact> {
-    let userContact;
-
-    if (isPublicData) {
+    else if (user.role === 'user' && isMainData) {
       userContact = await UserContact.findOne({
         where: {
-          value,
-          userId
-        },
-        attributes: this.publicUserContactData
-      });
-    }
-    else {
-      userContact = await UserContact.findOne({
-        where: {
-          value,
-          userId
+          id: userContactId,
+          userId: user.id
         }
       });
     }
 
     if (!userContact) {
-      throw new NotFound(`User contact with value: ${value} - is not found`);
+      throw new NotFound(`Contact with id: ${userContactId} - is not found`);
     }
 
     return userContact;
   }
 
   public async createUserContactByUserId(
-    userId: string,
-    userContactDataCreate: IUserContact
+    user: User,
+    userContactDataCreate: IUserContactCreate
   ): Promise<UserContact> {
     const newUserContact = await UserContact.create({
       ...userContactDataCreate,
-      userId: userId
+      userId: user.id
     });
 
     return (
-      await this.getUserContactById(newUserContact.id, false, true)
+      await this.getUserContactById(user, newUserContact.id)
     );
   }
 
   public async updateUserContactById(
+    user: User,
     userContactId: string,
-    newUserContactData: IUserContact
+    newUserContactData: IUserContactUpdate
   ): Promise<UserContact> {
-    const userContact = await this.getUserContactById(userContactId, false);
-    Object.assign(userContact, newUserContactData);
-    await userContact.save();
+    if (user.role === 'admin') {
+      await UserContact.update(newUserContactData, {
+        where: {
+          id: userContactId
+        }
+      })
+    }
+    else if (user.role === 'user') {
+      await UserContact.update(newUserContactData, {
+        where: {
+          id: userContactId,
+          userId: user.id
+        }
+      })
+    }
 
     return (
-      await this.getUserContactById(userContact.id)
+      await this.getUserContactById(user, userContactId)
     );
   }
 
-  public async updateUserContactByValue(
-    userId: string,
-    value: string,
-    newUserContactData: IUserContact
-  ): Promise<UserContact> {
-    const userContact = await this.getUserContactByValue(userId, value, false);
-    Object.assign(userContact, newUserContactData);
-    await userContact.save();
-
-    return (
-      await this.getUserContactById(userContact.id, false, true)
-    );
-  }
-
-  public async deleteUserContactById(userContactId: string): Promise<void> {
-    const userContact = await this.getUserContactById(userContactId, false, false);
-    await userContact.destroy();
-  }
-
-  public async deleteUserContactByValue(userId: string, value: string): Promise<void> {
-    const userContact = await this.getUserContactByValue(userId, value, false);
+  public async deleteUserContactById(user: User, userContactId: string): Promise<void> {
+    const userContact = await this.getUserContactById(user, userContactId, true);
     await userContact.destroy();
   }
 
