@@ -60,8 +60,8 @@ class AppModule {
     }));
     dependencyContainer.registerInstance('cryptoModule', new CryptoModule());
     dependencyContainer.registerInstance('notifModule', new NotificationModule());
-    dependencyContainer.registerInstance('userModule', new UserModule());
     dependencyContainer.registerInstance('jwtModule', new JWTModule());
+    dependencyContainer.registerInstance('userModule', new UserModule());
     dependencyContainer.registerInstance('authModule', new AuthModule());
     dependencyContainer.registerInstance('postModule', new PostModule());
     dependencyContainer.registerInstance('subscrModule', new SubscriptionModule());

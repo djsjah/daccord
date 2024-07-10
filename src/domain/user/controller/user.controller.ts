@@ -2,7 +2,6 @@ import { NextFunction, Request, Response } from 'express';
 import { UserGetByIdSchema } from '../validation/schema/user.get.schema';
 import User from '../../../database/models/user/user.model';
 import IUserPayload from '../../auth/validation/interface/user.payload.interface';
-import IUserPublicUpdate from '../validation/interface/update/public/user.public.update.interface';
 import DomainController from '../../domain.controller.abstract';
 import UserService from '../service/user.service';
 import UserContactService from '../service/user.contact.service';
@@ -208,6 +207,17 @@ class UserController extends DomainController {
         html: `<p>Hello, it's <strong>Daccord Service!</strong> You are trying to change your email.</p><br>
         <p>Please confirm your new email by clicking on the link: <strong><a style="text-decoration: underline;" href="${verifLink}">Change your email</a></strong></p>`
       });
+
+      const userNewEmails = await this.userContactService.getAllUserContactsByUserId({
+        id: userPayload.id,
+        name: userPayload.name,
+        email: userPayload.email,
+        role: userPayload.role
+      }, 'newEmail');
+
+      if (userNewEmails.length > 0) {
+        await this.userContactService.deleteUserContact(userNewEmails[0]);
+      }
 
       await this.userContactService.createUserContactByUserId(userPayload, {
         type: 'newEmail',

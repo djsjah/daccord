@@ -7,6 +7,7 @@ import UserService from './service/user.service';
 import UserContactService from './service/user.contact.service';
 import MailerTransporter from '../../utils/lib/mailer/mailer.transporter';
 import CryptoProvider from '../../utils/lib/crypto/crypto.provider';
+import JWTStrategy from '../../utils/lib/jwt/jwt.strategy';
 
 class UserModule {
   private readonly userController: UserController;
@@ -24,7 +25,8 @@ class UserModule {
       this.userService,
       this.userContactService,
       dependencyContainer.getInstance<MailerTransporter>('mailerTransporter'),
-      dependencyContainer.getInstance<CryptoProvider>('cryptoProvider')
+      dependencyContainer.getInstance<CryptoProvider>('cryptoProvider'),
+      dependencyContainer.getInstance<JWTStrategy>('jwtStrategy')
     );
 
     this.userContactController = new UserContactController(this.userContactService);
