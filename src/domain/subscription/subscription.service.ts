@@ -1,6 +1,6 @@
 import { Op } from 'sequelize';
 import { NotFound } from 'http-errors';
-import User from '../../database/models/user/user.model';
+import IUserPayload from '../auth/validation/interface/user.payload.interface';
 import ISubscriptionCreate from './validation/interface/subscription.create.interface';
 import ISubscriptionUpdate from './validation/interface/subscription.update.interface';
 import Subscription from '../../database/models/subscription/subscription.model';
@@ -46,7 +46,7 @@ class SubscriptionService {
     return subscriptions;
   }
 
-  public async getAllSubscriptionsByUserId(user: User): Promise<Subscription[]> {
+  public async getAllSubscriptionsByUserId(user: IUserPayload): Promise<Subscription[]> {
     let subscriptions: Subscription[] = [];
 
     if (user.role === 'admin') {
@@ -72,7 +72,7 @@ class SubscriptionService {
     return subscriptions;
   }
 
-  public async getAllSubscriptionsBySubscriberId(subscriber: User): Promise<Subscription[]> {
+  public async getAllSubscriptionsBySubscriberId(subscriber: IUserPayload): Promise<Subscription[]> {
     let subscriptions;
 
     if (subscriber.role === 'admin') {
@@ -99,7 +99,7 @@ class SubscriptionService {
   }
 
   public async getUserSubscriptionById(
-    user: User,
+    user: IUserPayload,
     subscriptionId: string,
     isMainData: boolean = false
   ): Promise<Subscription> {
@@ -138,7 +138,7 @@ class SubscriptionService {
   }
 
   public async getSubscriberSubscriptionById(
-    subscriber: User,
+    subscriber: IUserPayload,
     subscriptionId: string,
     isMainData: boolean = false
   ): Promise<Subscription> {
@@ -177,7 +177,7 @@ class SubscriptionService {
   }
 
   public async createSubscriptionAsSubscriber(
-    subscriber: User,
+    subscriber: IUserPayload,
     subscriptionDataCreate: ISubscriptionCreate
   ): Promise<Subscription> {
     const user = await this.userService.getUserByName(subscriptionDataCreate.userName);
@@ -192,7 +192,7 @@ class SubscriptionService {
   }
 
   public async updateSubscriptionById(
-    user: User,
+    user: IUserPayload,
     subscriptionId: string,
     newSubscriptionData: ISubscriptionUpdate
   ): Promise<Subscription> {
@@ -203,12 +203,15 @@ class SubscriptionService {
     return subscription;
   }
 
-  public async deleteUserSubscriptionById(user: User, subscriptionId: string): Promise<void> {
+  public async deleteUserSubscriptionById(user: IUserPayload, subscriptionId: string): Promise<void> {
     const subscription = await this.getUserSubscriptionById(user, subscriptionId, true);
     await subscription.destroy();
   }
 
-  public async deleteSubscriberSubscriptionById(subscriber: User, subscriptionId: string): Promise<void> {
+  public async deleteSubscriberSubscriptionById(
+    subscriber: IUserPayload,
+    subscriptionId: string
+  ): Promise<void> {
     const subscription = await this.getSubscriberSubscriptionById(subscriber, subscriptionId, true);
     await subscription.destroy();
   }

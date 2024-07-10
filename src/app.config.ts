@@ -1,6 +1,6 @@
 import express from 'express';
 import dependencyContainer from './utils/lib/dependencyInjection/dependency.container';
-import User from './database/models/user/user.model';
+import IUserPayload from './domain/auth/validation/interface/user.payload.interface';
 import AppRouter from './app.routes';
 import AuthRouter from './domain/auth/auth.routes';
 import UserRouter from './domain/user/routes/user.routes';
@@ -8,9 +8,9 @@ import UserContactRouter from './domain/user/routes/user.contact.routes';
 import PostRouter from './domain/post/post.routes';
 import SubscriptionRouter from './domain/subscription/subscription.routes';
 
-declare module 'express-session' {
-  interface SessionData {
-    user: User;
+declare module 'express' {
+  interface Request {
+    user?: IUserPayload;
   }
 }
 

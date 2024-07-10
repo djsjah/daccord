@@ -3,12 +3,16 @@ import {
   getModalName,
   showModal,
   hideModal,
-  resetModal,
   startSavePreloader,
   endSavePreloader,
   setModalError
 } from './modal.interface.js';
-import { signin, convertResponseToJson, isStatusOk } from '../../data/api/api.constructor.js';
+import {
+  signin,
+  logout,
+  convertResponseToJson,
+  isStatusOk
+} from '../../data/api/api.constructor.js';
 
 const NAME = getModalName() + 'auth';
 const modalAuth = document.querySelector(`.${NAME}`);
@@ -18,9 +22,7 @@ export function ModalAuth() {
   const modalForm = document.querySelector(`.${NAME} .modal__body_form`);
   const closeModalButtonArray = document.querySelectorAll(`.${NAME} .modal__button_cancel`);
 
-  openModalButton.addEventListener('click', async () => {
-    await showModal(modalAuth, NAME);
-  });
+  openModalButton.addEventListener('click', showModalEvent);
 
   modalForm.addEventListener('submit', async (ev) => {
     ev.preventDefault();
@@ -51,4 +53,25 @@ export function ModalAuth() {
       await hideModal(modalAuth);
     });
   });
+}
+
+export async function setLogoutEvent(openModalButton) {
+  openModalButton.removeEventListener('click', showModalEvent);
+  openModalButton.addEventListener('click', async () => {
+    try {
+      const response = await logout();
+      isStatusOk(response);
+    }
+    catch (err) {
+      console.log(err);
+      return;
+    }
+
+    location.reload(true);
+  });
+}
+
+
+async function showModalEvent() {
+  await showModal(modalAuth, NAME);
 }

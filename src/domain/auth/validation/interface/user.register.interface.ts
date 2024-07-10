@@ -1,4 +1,4 @@
-import IUserContactCreate from "../../../user/validation/interface/user.contact.create.interface";
+import IUserContactCreate from '../../../user/validation/interface/user.contact.create.interface';
 
 interface IUserRegister {
   name: string;

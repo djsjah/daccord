@@ -11,7 +11,10 @@ async function up({ context: queryInterface }) {
 }
 
 async function down({ context: queryInterface }) {
-  await queryInterface.removeColumn('Subscriptions', 'subscriberName');
+  const tableInfo = await queryInterface.describeTable('Subscriptions');
+  if (tableInfo.subscriberName) {
+    await queryInterface.removeColumn('Subscriptions', 'subscriberName');
+  }
 }
 
 module.exports = { up, down }

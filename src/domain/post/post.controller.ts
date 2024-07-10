@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import User from '../../database/models/user/user.model';
+import IUserPayload from '../auth/validation/interface/user.payload.interface';
 import PostService from './post.service';
 import PostGetByIdSchema from './validation/schema/post.get.schema';
 import PostCreateSchema from './validation/schema/post.create.schema';
@@ -26,7 +26,7 @@ class PostController {
   ): Promise<Response | void> {
     try {
       const searchSubstring = req.query.search || '';
-      const user = req.session.user as User;
+      const user = req.user as IUserPayload;
       const posts = await this.postService.getAllUserPostsByUserId(user, searchSubstring as string);
 
       return res.status(200).json({status: 200, data: posts, message: "List of all your posts" });
@@ -45,7 +45,7 @@ class PostController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      const user = req.session.user as User;
+      const user = req.user as IUserPayload;
       const post = await this.postService.getPostById(user, postId);
 
       return res.status(200).json({
@@ -68,7 +68,7 @@ class PostController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      const user = req.session.user as User;
+      const user = req.user as IUserPayload;
       const newPost = await this.postService.createPost(user, {
         ...postDataCreate,
         authorId: user.id
@@ -101,7 +101,7 @@ class PostController {
         return res.status(422).send(`Validation error: ${newPostDataValid.error.details[0].message}`);
       }
 
-      const user = req.session.user as User;
+      const user = req.user as IUserPayload;
       const updatedPost = await this.postService.updatePostById(user, postId, newPostData);
 
       return res.status(200).json({ status: 200, data: updatedPost, message: "Post successfully updated" });
@@ -120,7 +120,7 @@ class PostController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      const user = req.session.user as User;
+      const user = req.user as IUserPayload;
       await this.postService.deletePostById(user, postId);
 
       return res.status(200).json({ status: 200, message: "Post successfully deleted" });

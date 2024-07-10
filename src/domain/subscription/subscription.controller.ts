@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import User from '../../database/models/user/user.model';
+import IUserPayload from '../auth/validation/interface/user.payload.interface';
 import SubscriptionGetByIdSchema from './validation/schema/subscription.get.schema';
 import SubscriptionCreateSchema from './validation/schema/subscription.create.schema';
 import SubscriptionUpdateSchema from './validation/schema/subscription.update.schema';
@@ -33,7 +33,7 @@ class SubscriptionController {
     next: NextFunction
   ): Promise<Response | void> {
     try {
-      const user = req.session.user as User;
+      const user = req.user as IUserPayload;
       const subscriptions = await this.subscriptionService.getAllSubscriptionsByUserId(user);
 
       return res.status(200).json({
@@ -53,7 +53,7 @@ class SubscriptionController {
     next: NextFunction
   ): Promise<Response | void> {
     try {
-      const subscriber = req.session.user as User;
+      const subscriber = req.user as IUserPayload;
       const subscriptions = await this.subscriptionService.getAllSubscriptionsBySubscriberId(subscriber);
 
       return res.status(200).json({
@@ -80,7 +80,7 @@ class SubscriptionController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      const user = req.session.user as User;
+      const user = req.user as IUserPayload;
       const subscription = await this.subscriptionService.getUserSubscriptionById(user, subscriptionId);
 
       return res.status(200).json({
@@ -107,7 +107,7 @@ class SubscriptionController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      const subscriber = req.session.user as User;
+      const subscriber = req.user as IUserPayload;
       const subscription = await this.subscriptionService.getSubscriberSubscriptionById(
         subscriber, subscriptionId
       );
@@ -136,7 +136,7 @@ class SubscriptionController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      const subscriber = req.session.user as User;
+      const subscriber = req.user as IUserPayload;
       subscriptionDataCreate.subscriberName = subscriber.name;
       subscriptionDataCreate.subscriberId = subscriber.id;
 
@@ -176,7 +176,7 @@ class SubscriptionController {
         return res.status(422).send(`Validation error: ${newSubscriptionDataValid.error.details[0].message}`);
       }
 
-      const user = req.session.user as User;
+      const user = req.user as IUserPayload;
       const updatedSubscription = await this.subscriptionService.updateSubscriptionById(
         user,
         subscriptionId,
@@ -207,7 +207,7 @@ class SubscriptionController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      const user = req.session.user as User;
+      const user = req.user as IUserPayload;
       await this.subscriptionService.deleteUserSubscriptionById(user, subscriptionId);
 
       return res.status(200).json({ status: 200, message: "Subscription successfully deleted" });
@@ -230,7 +230,7 @@ class SubscriptionController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      const subscriber = req.session.user as User;
+      const subscriber = req.user as IUserPayload;
       await this.subscriptionService.deleteSubscriberSubscriptionById(subscriber, subscriptionId);
 
       return res.status(200).json({ status: 200, message: "Subscription successfully deleted" });

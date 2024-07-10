@@ -72,18 +72,24 @@ class UserService {
 
     if (includeAssociations && !isPublicData) {
       user = await User.findOne({
-        where: { id: userId },
+        where: {
+          id: userId
+        },
         include: this.userAssociations
       });
     }
     else if (!includeAssociations && !isPublicData) {
       user = await User.findOne({
-        where: { id: userId }
+        where: {
+          id: userId
+        }
       });
     }
     else if (!includeAssociations && isPublicData) {
       user = await User.findOne({
-        where: { id: userId },
+        where: {
+          id: userId
+        },
         attributes: this.publicUserData
       });
     }
@@ -97,7 +103,9 @@ class UserService {
 
   public async getUserByName(userName: string): Promise<User> {
     const user = await User.findOne({
-      where: { name: userName }
+      where: {
+        name: userName
+      }
     });
 
     if (user && !user.isActivated) {
@@ -113,7 +121,9 @@ class UserService {
 
   public async getUserByEmail(userEmail: string): Promise<User> {
     const user = await User.findOne({
-      where: { email: userEmail }
+      where: {
+        email: userEmail
+      }
     });
 
     if (user && !user.isActivated) {
@@ -129,11 +139,27 @@ class UserService {
 
   public async getUserByVerifToken(verifToken: string): Promise<User> {
     const user = await User.findOne({
-      where: { verifToken }
+      where: {
+        verifToken
+      }
     });
 
     if (!user) {
       throw new NotFound(`User with verification token: ${verifToken} - is not found`);
+    }
+
+    return user;
+  }
+
+  public async getUserByRefreshToken(refreshToken: string): Promise<User> {
+    const user = await User.findOne({
+      where: {
+        refreshToken
+      }
+    });
+
+    if (!user) {
+      throw new NotFound(`User with refresh token: ${refreshToken} - is not found`);
     }
 
     return user;

@@ -2,6 +2,7 @@ import { Op } from 'sequelize';
 import { NotFound } from 'http-errors';
 import Post from '../../database/models/post/post.model';
 import User from '../../database/models/user/user.model';
+import IUserPayload from '../auth/validation/interface/user.payload.interface';
 import IPostCreate from './validation/interface/post.create.interface';
 import IPostUpdate from './validation/interface/post.update.interface';
 
@@ -46,7 +47,7 @@ class PostService {
     return posts;
   }
 
-  public async getAllUserPostsByUserId(user: User, searchSubstring: string): Promise<Post[]> {
+  public async getAllUserPostsByUserId(user: IUserPayload, searchSubstring: string): Promise<Post[]> {
     let posts: Post[] = [];
 
     if (!searchSubstring) {
@@ -77,7 +78,7 @@ class PostService {
     return posts;
   }
 
-  public async getPostById(user: User, postId: string, isMainData: boolean = false): Promise<Post> {
+  public async getPostById(user: IUserPayload, postId: string, isMainData: boolean = false): Promise<Post> {
     let post;
 
     if (user.role === 'admin' && !isMainData) {
@@ -120,7 +121,7 @@ class PostService {
     return post;
   }
 
-  public async createPost(user: User, postDataCreate: IPostCreate): Promise<Post> {
+  public async createPost(user: IUserPayload, postDataCreate: IPostCreate): Promise<Post> {
     const newPost = await Post.create({
       ...postDataCreate
     });
@@ -130,7 +131,7 @@ class PostService {
     );
   }
 
-  public async updatePostById(user: User, postId: string, newPostData: IPostUpdate): Promise<Post> {
+  public async updatePostById(user: IUserPayload, postId: string, newPostData: IPostUpdate): Promise<Post> {
     if (user.role === 'admin') {
       await Post.update(newPostData, {
         where: {
@@ -152,7 +153,7 @@ class PostService {
     );
   }
 
-  public async deletePostById(user: User, postId: string): Promise<void> {
+  public async deletePostById(user: IUserPayload, postId: string): Promise<void> {
     const post = await this.getPostById(user, postId, true);
     await post.destroy();
   }

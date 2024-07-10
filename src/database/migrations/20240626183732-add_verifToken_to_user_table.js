@@ -11,7 +11,10 @@ async function up({ context: queryInterface }) {
 }
 
 async function down({ context: queryInterface }) {
-  await queryInterface.removeColumn('Users', 'verifToken');
+  const tableInfo = await queryInterface.describeTable('Users');
+  if (tableInfo.verifToken) {
+    await queryInterface.removeColumn('Users', 'verifToken');
+  }
 }
 
 module.exports = { up, down }

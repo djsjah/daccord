@@ -8,6 +8,7 @@ import AppRouter from './app.routes';
 import AppController from './app.controller';
 import MailerModule from './utils/lib/mailer/mailer.module';
 import CryptoModule from './utils/lib/crypto/crypto.module';
+import JWTModule from './utils/lib/jwt/jwt.module';
 import NotificationModule from './utils/lib/notification/notification.module';
 import UserModule from './domain/user/user.module';
 import AuthModule from './domain/auth/auth.module';
@@ -60,6 +61,7 @@ class AppModule {
     dependencyContainer.registerInstance('cryptoModule', new CryptoModule());
     dependencyContainer.registerInstance('notifModule', new NotificationModule());
     dependencyContainer.registerInstance('userModule', new UserModule());
+    dependencyContainer.registerInstance('jwtModule', new JWTModule());
     dependencyContainer.registerInstance('authModule', new AuthModule());
     dependencyContainer.registerInstance('postModule', new PostModule());
     dependencyContainer.registerInstance('subscrModule', new SubscriptionModule());

@@ -58,6 +58,12 @@ class User extends Model {
   isActivated!: boolean;
 
   @Column({
+    type: DataType.TEXT,
+    allowNull: true
+  })
+  refreshToken!: string | null;
+
+  @Column({
     type: DataType.STRING,
     allowNull: true
   })

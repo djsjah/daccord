@@ -15,7 +15,7 @@ class CryptoProvider {
   }
 
   public generateSecureVerificationToken(): string {
-    return crypto.randomBytes(20).toString('hex');
+    return crypto.randomBytes(64).toString('hex');
   }
 }
 export default CryptoProvider;

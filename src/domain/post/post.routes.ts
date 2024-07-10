@@ -1,8 +1,8 @@
 import express, { Router } from 'express';
 import dependencyContainer from '../../utils/lib/dependencyInjection/dependency.container';
 import AbstractRouter from '../../app.routes.abstract';
-import authGuard from '../auth/guard/auth.guard';
-import authAdminGuard from '../auth/guard/auth.admin.guard';
+import authGuard from '../auth/middleware/guard/auth.guard';
+import authAdminGuard from '../auth/middleware/guard/auth.admin.guard';
 import PostController from './post.controller';
 
 class PostRouter extends AbstractRouter {

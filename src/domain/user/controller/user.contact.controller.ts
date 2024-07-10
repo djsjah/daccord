@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { UserGetByIdSchema } from '../validation/schema/user.get.schema';
-import User from '../../../database/models/user/user.model';
+import IUserPayload from '../../auth/validation/interface/user.payload.interface';
 import UserContactCreateSchema from '../validation/schema/user.contact.create.schema';
 import UserContactUpdateSchema from '../validation/schema/update/user.contact.update.schema';
 import UserContactService from '../service/user.contact.service';
@@ -35,7 +35,7 @@ class UserContactController {
   ): Promise<Response | void> {
     try {
       const searchSubstring = req.query.search || '';
-      const user = req.session.user as User;
+      const user = req.user as IUserPayload;
       const userContacts = await this.userContactService.getAllUserContactsByUserId(
         user,
         searchSubstring as string
@@ -61,7 +61,7 @@ class UserContactController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      const user = req.session.user as User;
+      const user = req.user as IUserPayload;
       const userContact = await this.userContactService.getUserContactById(user, userContactId);
       return res.status(200).json({
         status: 200,
@@ -83,7 +83,7 @@ class UserContactController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      const user = req.session.user as User;
+      const user = req.user as IUserPayload;
       const newUserContact = await this.userContactService.createUserContactByUserId(
         user,
         userContactDataCreate
@@ -118,7 +118,7 @@ class UserContactController {
         return res.status(422).send(`Validation error: ${newUserContactDataValid.error.details[0].message}`);
       }
 
-      const user = req.session.user as User;
+      const user = req.user as IUserPayload;
       const updatedUserContact = await this.userContactService.updateUserContactById(
         user,
         userContactId,
@@ -149,7 +149,7 @@ class UserContactController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      const user = req.session.user as User;
+      const user = req.user as IUserPayload;
       await this.userContactService.deleteUserContactById(user, userContactId);
       return res.status(200).json({ status: 200, message: "Сontact successfully deleted" });
     }

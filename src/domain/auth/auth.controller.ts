@@ -1,23 +1,26 @@
 import { NextFunction, Request, Response } from 'express';
 import { HttpError } from 'http-errors';
 import DomainController from '../domain.controller.abstract';
+import IUserPayload from './validation/interface/user.payload.interface';
 import UserAuthSchema from './validation/schema/user.auth.schema';
 import UserRegisterSchema from './validation/schema/user.register.schema';
 import MailerTransporter from '../../utils/lib/mailer/mailer.transporter';
 import UserService from '../user/service/user.service';
 import CryptoProvider from '../../utils/lib/crypto/crypto.provider';
+import JWTStrategy from '../../utils/lib/jwt/jwt.strategy';
 
 class AuthController extends DomainController {
   constructor(
     private readonly mailerTransporter: MailerTransporter,
     private readonly cryptoProvider: CryptoProvider,
+    private readonly jwtStrategy: JWTStrategy,
     private readonly userService: UserService
   ) {
     super();
   }
 
-  public async getAuthData(req: Request, res: Response, next: NextFunction) {
-    const user = req.session.user;
+  public getUserPayload(req: Request, res: Response, next: NextFunction): Response {
+    const user = req.user;
 
     if (user) {
       return res.status(200).json({
@@ -51,15 +54,39 @@ class AuthController extends DomainController {
         return res.status(401).send("Unauthorized - incorrect email or password");
       }
 
-      req.session.user = user.dataValues;
-      return res.status(200).json({
-        status: 200,
-        data: {
-          name: user.name,
-          email: user.email
-        },
-        message: "Authorization was successful"
+      const userPayload: IUserPayload = {
+        id: user.dataValues.id,
+        name: user.dataValues.name,
+        email: user.dataValues.email,
+        role: user.dataValues.role
+      };
+
+      const accessToken = this.jwtStrategy.createAccessToken(userPayload);
+      const refreshToken = this.jwtStrategy.createRefreshToken(userPayload);
+
+      await this.userService.updateUserAuthData(user, {
+        refreshToken: refreshToken
       });
+
+      return res.status(200)
+        .cookie('access-token', accessToken, {
+          httpOnly: true,
+          secure: false,
+          maxAge: 900000
+        })
+        .cookie('refresh-token', refreshToken, {
+          httpOnly: true,
+          secure: false,
+          maxAge: 259200000
+        })
+        .json({
+          status: 200,
+          data: {
+            name: user.name,
+            email: user.email
+          },
+          message: "Authorization was successful"
+        });
     }
     catch (err) {
       if (err instanceof HttpError && err.status === 404) {
@@ -102,18 +129,32 @@ class AuthController extends DomainController {
     }
   }
 
-  public logout(req: Request, res: Response, next: NextFunction): Response | void {
+  public async logout(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      req.session.destroy(() => {
-        return res.status(200).json({ status: 200, message: "Logged out successfully" });
+      const userId = req.user?.id as string;
+      const user = await this.userService.getUserById(userId, false);
+      await this.userService.updateUserAuthData(user, {
+        refreshToken: null
       });
+
+      if (req.cookies['refresh-token']) {
+        res.clearCookie('refresh-token');
+      }
+
+      res.clearCookie('access-token');
     }
     catch (err) {
       next(err);
     }
+
+    return res.status(200).json({ status: 200, message: "Logged out successfully" });
   }
 
-  public override async verifyUserEmail(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+  public override async verifyUserEmail(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> {
     try {
       const { token } = req.query;
       const user = await this.userService.getUserByVerifToken(token as string);

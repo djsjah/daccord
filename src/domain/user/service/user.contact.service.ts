@@ -1,6 +1,7 @@
 import { Op } from 'sequelize';
 import { NotFound } from 'http-errors';
 import User from '../../../database/models/user/user.model';
+import IUserPayload from '../../auth/validation/interface/user.payload.interface';
 import UserContact from '../../../database/models/user/user.contact.model';
 import IUserContactCreate from '../validation/interface/user.contact.create.interface';
 import IUserContactUpdate from '../validation/interface/update/user.contact.update.interface';
@@ -43,7 +44,10 @@ class UserContactService {
     return userContacts;
   }
 
-  public async getAllUserContactsByUserId(user: User, searchSubstring: string = ''): Promise<UserContact[]> {
+  public async getAllUserContactsByUserId(
+    user: IUserPayload,
+    searchSubstring: string = ''
+  ): Promise<UserContact[]> {
     let userContacts: UserContact[] = [];
 
     if (!searchSubstring) {
@@ -75,7 +79,7 @@ class UserContactService {
   }
 
   public async getUserContactById(
-    user: User,
+    user: IUserPayload,
     userContactId: string,
     isMainData: boolean = false
   ): Promise<UserContact> {
@@ -122,7 +126,7 @@ class UserContactService {
   }
 
   public async createUserContactByUserId(
-    user: User,
+    user: IUserPayload,
     userContactDataCreate: IUserContactCreate
   ): Promise<UserContact> {
     const newUserContact = await UserContact.create({
@@ -136,7 +140,7 @@ class UserContactService {
   }
 
   public async updateUserContactById(
-    user: User,
+    user: IUserPayload,
     userContactId: string,
     newUserContactData: IUserContactUpdate
   ): Promise<UserContact> {
@@ -161,7 +165,7 @@ class UserContactService {
     );
   }
 
-  public async deleteUserContactById(user: User, userContactId: string): Promise<void> {
+  public async deleteUserContactById(user: IUserPayload, userContactId: string): Promise<void> {
     const userContact = await this.getUserContactById(user, userContactId, true);
     await userContact.destroy();
   }

@@ -16,9 +16,15 @@ export async function signin(authData) {
   );
 }
 
+export async function logout() {
+  return (
+    await fetch("http://localhost:5000/auth/logout")
+  );
+}
+
 export async function getUserAuthData() {
   return (
-    await fetch("http://localhost:5000/auth")
+    await fetch("http://localhost:5000/auth/payload")
   );
 }
 
@@ -30,7 +36,9 @@ export async function getAllUsers(searchString = '') {
 
 export async function getUserPosts() {
   return (
-    await fetch("http://localhost:5000/api/posts/public")
+    await fetch("http://localhost:5000/api/posts/public", {
+      credentials: 'include'
+    })
   );
 }
 

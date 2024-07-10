@@ -4,13 +4,13 @@ import {
   setupCurURL
 } from './app.config';
 import express from 'express';
-import session from 'express-session';
 import path from 'path';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dependencyContainer from './utils/lib/dependencyInjection/dependency.container';
 import AppModule from './app.module';
 import AuthService from './domain/auth/auth.service';
+import tokensVerification from './domain/auth/middleware/auth.middleware';
 import setupSwagger from './middleware/swagger/swagger.config';
 import errorHandler from './middleware/handler/error.handler';
 
@@ -30,20 +30,9 @@ async function bootstrap() {
   authService.scheduleDailyCleanupNotVerifData();
 
   app.use(cookieParser());
-  app.use(session({
-    name: 'session-id',
-    secret: process.env.SECRET!,
-    resave: false,
-    saveUninitialized: true,
-    cookie: {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
-      maxAge: 7200000
-    }
-  }));
   app.use(cors({
     origin: '*',
+    credentials: true,
     optionsSuccessStatus: 200
   }));
   app.use(express.json());

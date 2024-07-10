@@ -1,6 +1,8 @@
 import { NextFunction, Request, Response } from 'express';
 import { UserGetByIdSchema } from '../validation/schema/user.get.schema';
 import User from '../../../database/models/user/user.model';
+import IUserPayload from '../../auth/validation/interface/user.payload.interface';
+import IUserPublicUpdate from '../validation/interface/update/public/user.public.update.interface';
 import DomainController from '../../domain.controller.abstract';
 import UserService from '../service/user.service';
 import UserContactService from '../service/user.contact.service';
@@ -8,13 +10,15 @@ import UserPrivateUpdateSchema from '../validation/schema/update/private/user.pr
 import UserPublicUpdateSchema from '../validation/schema/update/public/user.public.update.schema';
 import MailerTransporter from '../../../utils/lib/mailer/mailer.transporter';
 import CryptoProvider from '../../../utils/lib/crypto/crypto.provider';
+import JWTStrategy from '../../../utils/lib/jwt/jwt.strategy';
 
 class UserController extends DomainController {
   constructor(
     private readonly userService: UserService,
     private readonly userContactService: UserContactService,
     private readonly mailerTransporter: MailerTransporter,
-    private readonly cryptoProvider: CryptoProvider
+    private readonly cryptoProvider: CryptoProvider,
+    private readonly jwtStrategy: JWTStrategy
   ) {
     super();
   }
@@ -67,7 +71,10 @@ class UserController extends DomainController {
         newUserData.password = await this.cryptoProvider.hashStringBySHA256(newUserData.password);
       }
 
-      const updatedUser = await this.userService.updateUserById(userId, newUserData);
+      const updatedUser = await this.userService.updateUserById(userId, {
+        ...newUserData,
+        refreshToken: null
+      });
       return res.status(200).json({ status: 200, data: updatedUser, message: "User successfully updated" });
     }
     catch (err) {
@@ -77,71 +84,27 @@ class UserController extends DomainController {
 
   public async updateUser(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      const user = req.session.user as User;
-      const newUserData = req.body;
+      let newUserData = req.body;
       const { error } = UserPublicUpdateSchema.validate(newUserData);
 
       if (error) {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      let newEmail = null;
-      const hashOldPassword = newUserData.oldPassword ?
-        await this.cryptoProvider.hashStringBySHA256(newUserData.oldPassword) : null;
+      const userPayload = req.user as IUserPayload;
+      const user = await this.userService.getUserById(userPayload.id);
 
-      if (
-        (newUserData.newPassword && !newUserData.oldPassword) ||
-        (!newUserData.newPassword && newUserData.oldPassword)
-      ) {
-        return res.status(422).send(
-          "Validation error: When changing your password, you must enter both the new password and the old one"
-        );
-      }
-      else if (newUserData.newPassword && hashOldPassword !== user.password) {
-        return res.status(422).send("Validation error: old password is incorrect");
-      }
-      else if (newUserData.newPassword) {
-        newUserData.password = await this.cryptoProvider.hashStringBySHA256(newUserData.newPassword);
-        delete newUserData.newPassword;
-        delete newUserData.oldPassword;
-      }
-
-      if (newUserData.email && newUserData.email !== user.email) {
-        const verifToken = this.cryptoProvider.generateSecureVerificationToken();
-        const verifLink = process.env.CUR_URL + `/api/users/verifyUserEmail?token=${verifToken}`;
-
-        await this.mailerTransporter.sendMailByTransporter({
-          to: newUserData.email,
-          subject: 'Verify your email',
-          html: `<p>Hello, it's <strong>Daccord Service!</strong> You are trying to change your email.</p><br>
-          <p>Please confirm your new email by clicking on the link: <strong><a style="text-decoration: underline;" href="${verifLink}">Change your email</a></strong></p>`
-        });
-
-        await this.userContactService.createUserContactByUserId(user, {
-          type: 'newEmail',
-          value: newUserData.email
-        });
-
-        newEmail = newUserData.email;
-        delete newUserData.email;
-        newUserData.verifToken = verifToken;
-      }
+      newUserData = await this.validateUserPassword(res, user, newUserData);
+      newUserData = await this.validateUserEmail(user, userPayload, newUserData);
+      newUserData = await this.isUpdateUserJWTTokens(res, user, newUserData);
 
       const updatedUser = await this.userService.updateUser(user, newUserData);
 
-      return newEmail ?
-        res.status(200).json({
-          status: 200,
-          data: updatedUser,
-          verifEmail: true,
-          message: `User successfully updated and email successfully sent to ${newEmail}`
-        }) :
-        res.status(200).json({
-          status: 200,
-          data: updatedUser,
-          verifEmail: false,
-          message: "User successfully updated"
-        });
+      return res.status(200).json({
+        status: 200,
+        data: updatedUser,
+        message: "User successfully updated"
+      });
     }
     catch (err) {
       next(err);
@@ -173,20 +136,146 @@ class UserController extends DomainController {
     try {
       const { token } = req.query;
       const user = await this.userService.getUserByVerifToken(token as string);
-      const userContacts = await this.userContactService.getAllUserContactsByUserId(user, 'newEmail');
+      const userContacts = await this.userContactService.getAllUserContactsByUserId({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role as 'user' | 'admin'
+      }, 'newEmail');
+
       const newUserEmail = userContacts[0].value;
+      const newUserData = await this.updateUserJWTTokens(
+        res,
+        {
+          email: newUserEmail,
+          verifToken: null
+        },
+        {
+          id: user.id,
+          name: user.name,
+          email: newUserEmail,
+          role: user.role as 'admin' | 'user'
+        }
+      );
 
-      await this.userService.updateUserAuthData(user, {
-        email: newUserEmail,
-        verifToken: null
-      });
-
+      await this.userService.updateUserAuthData(user, newUserData);
       await this.userContactService.deleteUserContact(userContacts[0]);
+
       return res.redirect(process.env.CUR_URL + '/api');
     }
     catch (err) {
       next(err);
     }
+  }
+
+  public async validateUserPassword(res: Response, user: User, newUserData: any) {
+    const hashOldPassword = newUserData.oldPassword ?
+      await this.cryptoProvider.hashStringBySHA256(newUserData.oldPassword) : null;
+
+    if (
+      (newUserData.newPassword && !newUserData.oldPassword) ||
+      (!newUserData.newPassword && newUserData.oldPassword)
+    ) {
+      return res.status(422).send(
+        "Validation error: When changing your password, you must enter both the new password and the old one"
+      );
+    }
+    else if (newUserData.newPassword && hashOldPassword !== user.password) {
+      return res.status(422).send("Validation error: old password is incorrect");
+    }
+    else if (newUserData.newPassword) {
+      const hashNewPassword = await this.cryptoProvider.hashStringBySHA256(newUserData.newPassword);
+      delete newUserData.newPassword;
+      delete newUserData.oldPassword;
+
+      return {
+        ...newUserData,
+        password: hashNewPassword
+      };
+    }
+
+    return newUserData;
+  }
+
+  public async validateUserEmail(user: User, userPayload: IUserPayload, newUserData: any) {
+    if (user.role !== 'admin' && newUserData.email && newUserData.email !== user.email) {
+      const verifToken = this.cryptoProvider.generateSecureVerificationToken();
+      const verifLink = process.env.CUR_URL + `/api/users/verifyUserEmail?token=${verifToken}`;
+
+      await this.mailerTransporter.sendMailByTransporter({
+        to: newUserData.email,
+        subject: 'Verify your email',
+        html: `<p>Hello, it's <strong>Daccord Service!</strong> You are trying to change your email.</p><br>
+        <p>Please confirm your new email by clicking on the link: <strong><a style="text-decoration: underline;" href="${verifLink}">Change your email</a></strong></p>`
+      });
+
+      await this.userContactService.createUserContactByUserId(userPayload, {
+        type: 'newEmail',
+        value: newUserData.email
+      });
+
+      delete newUserData.email;
+
+      return {
+        ...newUserData,
+        verifToken: verifToken
+      };
+    }
+
+    return newUserData;
+  }
+
+  public async updateUserJWTTokens(
+    res: Response,
+    newUserData: any,
+    userUpdatedPayload: IUserPayload
+  ) {
+    const accessToken = await this.jwtStrategy.createAccessToken(userUpdatedPayload);
+    const refreshToken = await this.jwtStrategy.createRefreshToken(userUpdatedPayload);
+
+    res.cookie('access-token', accessToken, {
+      httpOnly: true,
+      secure: false,
+      maxAge: 900000
+    })
+      .cookie('refresh-token', refreshToken, {
+        httpOnly: true,
+        secure: false,
+        maxAge: 259200000
+      });
+
+    return {
+      ...newUserData,
+      refreshToken: refreshToken
+    };
+  }
+
+  public async isUpdateUserJWTTokens(res: Response, user: User, newUserData: any) {
+    let isUpdateUserJWTTokens = false;
+    const userUpdatedPayload: IUserPayload = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role as 'admin' | 'user'
+    };
+
+    if (user.role === 'admin' && newUserData.email && user.email !== newUserData.email) {
+      userUpdatedPayload.email = newUserData.email;
+      isUpdateUserJWTTokens = true;
+    }
+
+    if (newUserData.name && newUserData.name !== user.name) {
+      userUpdatedPayload.name = newUserData.name;
+      isUpdateUserJWTTokens = true;
+    }
+
+    if (isUpdateUserJWTTokens) {
+      return (
+        await this.updateUserJWTTokens(res, newUserData, userUpdatedPayload)
+      );
+    }
+
+    return newUserData;
   }
 }
 export default UserController;
