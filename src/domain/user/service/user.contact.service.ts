@@ -69,10 +69,6 @@ class UserContactService {
         },
         attributes: this.publicUserContactData
       });
-
-      if (userContacts.length === 0) {
-        throw new NotFound(`User contacts by search substring: ${searchSubstring} - are not found`);
-      }
     }
 
     return userContacts;
