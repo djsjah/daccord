@@ -17,15 +17,23 @@ class UserContactService {
     'value'
   ];
 
-  public async getAllUsersContacts(searchSubstring: string): Promise<UserContact[]> {
-    let userContacts = [];
+  public async getAllUserContacts(user: IUserPayload, searchSubstring: string): Promise<UserContact[]> {
+    let userContacts: UserContact[] = [];
 
-    if (!searchSubstring) {
+    if (user.role === 'admin' && !searchSubstring) {
       userContacts = await UserContact.findAll({
         include: this.userContactAssociations
       });
     }
-    else {
+    else if (user.role === 'user' && !searchSubstring) {
+      userContacts = await UserContact.findAll({
+        where: {
+          userId: user.id
+        },
+        attributes: this.publicUserContactData
+      });
+    }
+    else if (user.role === 'admin' && searchSubstring) {
       userContacts = await UserContact.findAll({
         where: {
           [Op.or]: [
@@ -40,25 +48,7 @@ class UserContactService {
         throw new NotFound(`User contacts by search substring: ${searchSubstring} - are not found`);
       }
     }
-
-    return userContacts;
-  }
-
-  public async getAllUserContactsByUserId(
-    user: IUserPayload,
-    searchSubstring: string = ''
-  ): Promise<UserContact[]> {
-    let userContacts: UserContact[] = [];
-
-    if (!searchSubstring) {
-      userContacts = await UserContact.findAll({
-        where: {
-          userId: user.id
-        },
-        attributes: this.publicUserContactData
-      });
-    }
-    else {
+    else if (user.role === 'user' && searchSubstring) {
       userContacts = await UserContact.findAll({
         where: {
           userId: user.id,
@@ -69,6 +59,10 @@ class UserContactService {
         },
         attributes: this.publicUserContactData
       });
+
+      if (userContacts.length === 0) {
+        throw new NotFound(`User contacts by search substring: ${searchSubstring} - are not found`);
+      }
     }
 
     return userContacts;
@@ -159,11 +153,6 @@ class UserContactService {
     return (
       await this.getUserContactById(user, userContactId)
     );
-  }
-
-  public async deleteUserContactById(user: IUserPayload, userContactId: string): Promise<void> {
-    const userContact = await this.getUserContactById(user, userContactId, true);
-    await userContact.destroy();
   }
 
   public async deleteUserContact(userContact: UserContact): Promise<void> {

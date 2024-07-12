@@ -8,35 +8,20 @@ import PostUpdateSchema from './validation/schema/post.update.schema';
 class PostController {
   constructor(private readonly postService: PostService) { }
 
-  public async getAllUsersPosts(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+  public async getAllUserPosts(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      const searchSubstring = req.query.search || '';
-      const posts = await this.postService.getAllUsersPosts(searchSubstring as string);
-      return res.status(200).json({ status: 200, data: posts, message: "List of all posts of all users" });
-    }
-    catch (err) {
-      next(err);
-    }
-  }
-
-  public async getAllUserPostsByUserId(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<Response | void> {
-    try {
-      const searchSubstring = req.query.search || '';
       const user = req.user as IUserPayload;
-      const posts = await this.postService.getAllUserPostsByUserId(user, searchSubstring as string);
+      const searchSubstring = req.query.search as string;
+      const posts = await this.postService.getAllUserPosts(user, searchSubstring);
 
-      return res.status(200).json({status: 200, data: posts, message: "List of all your posts" });
+      return res.status(200).json({status: 200, data: posts, message: "List of all posts" });
     }
     catch (err) {
       next(err);
     }
   }
 
-  public async getPostById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+  public async getUserPostById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const postId = req.params.postId;
       const { error } = PostGetByIdSchema.validate(postId);
@@ -46,7 +31,7 @@ class PostController {
       }
 
       const user = req.user as IUserPayload;
-      const post = await this.postService.getPostById(user, postId);
+      const post = await this.postService.getUserPostById(user, postId);
 
       return res.status(200).json({
         status: 200,
@@ -59,7 +44,7 @@ class PostController {
     }
   }
 
-  public async createPost(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+  public async createUserPost(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const postDataCreate = req.body;
       const { error } = PostCreateSchema.validate(postDataCreate);
@@ -69,7 +54,7 @@ class PostController {
       }
 
       const user = req.user as IUserPayload;
-      const newPost = await this.postService.createPost(user, {
+      const newPost = await this.postService.createUserPost(user, {
         ...postDataCreate,
         authorId: user.id
       });
@@ -85,7 +70,7 @@ class PostController {
     }
   }
 
-  public async updatePostById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+  public async updateUserPostById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const postId = req.params.postId;
       const postIdValid = PostGetByIdSchema.validate(postId);
@@ -102,7 +87,7 @@ class PostController {
       }
 
       const user = req.user as IUserPayload;
-      const updatedPost = await this.postService.updatePostById(user, postId, newPostData);
+      const updatedPost = await this.postService.updateUserPostById(user, postId, newPostData);
 
       return res.status(200).json({ status: 200, data: updatedPost, message: "Post successfully updated" });
     }
@@ -111,7 +96,7 @@ class PostController {
     }
   }
 
-  public async deletePostById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+  public async deleteUserPostById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const postId = req.params.postId;
       const { error } = PostGetByIdSchema.validate(postId);
@@ -121,7 +106,7 @@ class PostController {
       }
 
       const user = req.user as IUserPayload;
-      await this.postService.deletePostById(user, postId);
+      await this.postService.deleteUserPostById(user, postId);
 
       return res.status(200).json({ status: 200, message: "Post successfully deleted" });
     }

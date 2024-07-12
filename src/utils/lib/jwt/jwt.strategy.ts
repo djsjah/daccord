@@ -5,12 +5,10 @@ import IUserPayload from '../../../domain/auth/validation/interface/user.payload
 class JWTStrategy {
   private readonly secretKey: Secret = process.env.JWT_SECRET!;
 
-  public createAccessToken(userPayload: IUserPayload) {
-    return jwt.sign(userPayload, this.secretKey, { expiresIn: '15m'});
-  }
-
-  public createRefreshToken(userPayload: IUserPayload) {
-    return jwt.sign(userPayload, this.secretKey, { expiresIn: '3d'});
+  public createJWTToken(userPayload: IUserPayload, isAccessToken: boolean = true) {
+    return jwt.sign(userPayload, this.secretKey, {
+      expiresIn: isAccessToken ? '15m' : '3d'
+    });
   }
 
   public validateToken(token: string): Promise<IUserPayload> {

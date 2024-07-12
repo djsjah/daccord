@@ -10,7 +10,6 @@ import cookieParser from 'cookie-parser';
 import dependencyContainer from './utils/lib/dependencyInjection/dependency.container';
 import AppModule from './app.module';
 import AuthService from './domain/auth/auth.service';
-import tokensVerification from './domain/auth/middleware/auth.middleware';
 import setupSwagger from './middleware/swagger/swagger.config';
 import errorHandler from './middleware/handler/error.handler';
 
@@ -24,9 +23,7 @@ async function bootstrap() {
   setupCurURL(port);
 
   const authService = dependencyContainer.getInstance<AuthService>('authService');
-  await authService.deleteAllNonActivatedAccounts();
-  await authService.deleteAllVerificationTokens();
-
+  await authService.deleteAllNonVerifData();
   authService.scheduleDailyCleanupNotVerifData();
 
   app.use(cookieParser());

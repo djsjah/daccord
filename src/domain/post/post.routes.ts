@@ -2,7 +2,6 @@ import express, { Router } from 'express';
 import dependencyContainer from '../../utils/lib/dependencyInjection/dependency.container';
 import AbstractRouter from '../../app.routes.abstract';
 import authGuard from '../auth/middleware/guard/auth.guard';
-import authAdminGuard from '../auth/middleware/guard/auth.admin.guard';
 import PostController from './post.controller';
 
 class PostRouter extends AbstractRouter {
@@ -22,14 +21,11 @@ class PostRouter extends AbstractRouter {
 
   protected override setupRouter(): void {
     this.postRouter.use('/public', authGuard);
-    this.postRouter.get('/public', (...args) => this.postController.getAllUserPostsByUserId(...args));
-    this.postRouter.post('/public', (...args) => this.postController.createPost(...args));
-    this.postRouter.get('/public/:postId', (...args) => this.postController.getPostById(...args));
-    this.postRouter.patch('/public/:postId', (...args) => this.postController.updatePostById(...args));
-    this.postRouter.delete('/public/:postId', (...args) => this.postController.deletePostById(...args));
-
-    this.postRouter.use('/admin', authAdminGuard);
-    this.postRouter.get('/admin', (...args) => this.postController.getAllUsersPosts(...args));
+    this.postRouter.get('/public', (...args) => this.postController.getAllUserPosts(...args));
+    this.postRouter.post('/public', (...args) => this.postController.createUserPost(...args));
+    this.postRouter.get('/public/:postId', (...args) => this.postController.getUserPostById(...args));
+    this.postRouter.patch('/public/:postId', (...args) => this.postController.updateUserPostById(...args));
+    this.postRouter.delete('/public/:postId', (...args) => this.postController.deleteUserPostById(...args));
   }
 }
 export default PostRouter;

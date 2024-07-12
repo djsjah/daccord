@@ -1,9 +1,8 @@
 import { Op } from 'sequelize';
 import { NotFound, Forbidden } from 'http-errors';
 import IUserRegister from '../../auth/validation/interface/user.register.interface';
-import IUserUpdateAuth from '../../auth/validation/interface/user.auth.update.interface';
-import IUserPrivateUpdate from '../validation/interface/update/private/user.private.update.interface';
-import IUserPublicUpdate from '../validation/interface/update/public/user.public.update.interface';
+import IUserUpdate from '../validation/interface/update/user.update.interface';
+import IGetUserParams from '../validation/interface/user.get.params.interface';
 import User from '../../../database/models/user/user.model';
 import UserContact from '../../../database/models/user/user.contact.model';
 import Post from '../../../database/models/post/post.model';
@@ -17,6 +16,11 @@ class UserService {
   private readonly publicUserData = [
     'name',
     'email'
+  ];
+
+  private readonly publicParamData = [
+    'verifToken',
+    'refreshToken'
   ];
 
   public async getAllUsers(searchSubstring: string): Promise<User[]> {
@@ -45,26 +49,25 @@ class UserService {
     return users;
   }
 
-  public async getAllNonActivatedUsers(): Promise<User[]> {
-    return (
-      await User.findAll({
-        where: {
-          isActivated: false
-        }
-      })
-    );
-  }
+  public async getAllNonVerifUsers(): Promise<{ nonActivatedUsers: User[], usersWithVerifToken: User[] }> {
+    const nonActivatedUsers = await User.findAll({
+      where: {
+        isActivated: false
+      }
+    });
 
-  public async getAllUsersWithVerifToken(): Promise<User[]> {
-    return (
-      await User.findAll({
-        where: {
-          verifToken: {
-            [Op.ne]: null
-          }
+    const usersWithVerifToken = await User.findAll({
+      where: {
+        verifToken: {
+          [Op.ne]: null
         }
-      })
-    );
+      }
+    });
+
+    return {
+      nonActivatedUsers,
+      usersWithVerifToken
+    };
   }
 
   public async getUserById(userId: string, includeAssociations = true, isPublicData = false): Promise<User> {
@@ -101,65 +104,25 @@ class UserService {
     return user;
   }
 
-  public async getUserByName(userName: string): Promise<User> {
+  public async getUserByUniqueParams(userParams: IGetUserParams): Promise<User> {
     const user = await User.findOne({
       where: {
-        name: userName
+        ...userParams
       }
     });
 
     if (user && !user.isActivated) {
-      throw new Forbidden(`Forbidden - user with name: ${userName} is not activated`);
-    }
+      const hasPublicParam = Object.keys(userParams).some(
+        param => this.publicParamData.includes(param)
+      );
 
-    if (!user) {
-      throw new NotFound(`User with name: ${userName} - is not found`);
-    }
-
-    return user;
-  }
-
-  public async getUserByEmail(userEmail: string): Promise<User> {
-    const user = await User.findOne({
-      where: {
-        email: userEmail
+      if (!hasPublicParam) {
+        throw new Forbidden(`Forbidden - user with params: ${userParams} is not activated`);
       }
-    });
-
-    if (user && !user.isActivated) {
-      throw new Forbidden("Forbidden - this account is not activated");
     }
 
     if (!user) {
-      throw new NotFound(`User with email: ${userEmail} - is not found`);
-    }
-
-    return user;
-  }
-
-  public async getUserByVerifToken(verifToken: string): Promise<User> {
-    const user = await User.findOne({
-      where: {
-        verifToken
-      }
-    });
-
-    if (!user) {
-      throw new NotFound(`User with verification token: ${verifToken} - is not found`);
-    }
-
-    return user;
-  }
-
-  public async getUserByRefreshToken(refreshToken: string): Promise<User> {
-    const user = await User.findOne({
-      where: {
-        refreshToken
-      }
-    });
-
-    if (!user) {
-      throw new NotFound(`User with refresh token: ${refreshToken} - is not found`);
+      throw new NotFound(`User with params: ${userParams} - is not found`);
     }
 
     return user;
@@ -180,43 +143,24 @@ class UserService {
       await UserContact.bulkCreate(userContactsData);
     }
 
-    const createdUser = await this.getUserById(newUser.id, false, true);
-    return createdUser;
-  }
-
-  public async updateUserAuthData(user: User, newUserData: IUserUpdateAuth): Promise<User> {
-    Object.assign(user, newUserData);
-    await user.save();
-    return user;
-  }
-
-  public async updateUserById(
-    userId: string,
-    newUserData: IUserPrivateUpdate,
-    includeAssociations = true
-  ): Promise<User> {
-    const user = await this.getUserById(userId, includeAssociations);
-    Object.assign(user, newUserData);
-    await user.save();
-
-    return user;
-  }
-
-  public async updateUser(user: User, newUserData: IUserPublicUpdate): Promise<User> {
-    await User.update(newUserData, {
-      where: {
-        id: user.id
-      }
-    });
-
     return (
-      await this.getUserById(user.id, false, true)
+      await this.getUserById(newUser.id)
     );
   }
 
-  public async deleteUserById(userId: string): Promise<void> {
-    const user = await this.getUserById(userId, false);
-    await user.destroy();
+  public async updateUser(user: User, newUserData: IUserUpdate, userRoleCheck: boolean = true): Promise<User> {
+    Object.assign(user, newUserData);
+    await user.save();
+
+    if (userRoleCheck) {
+      return (
+        user.role === 'user' ?
+          await this.getUserById(user.id, false, true) :
+          await this.getUserById(user.id)
+      );
+    }
+
+    return user;
   }
 
   public async deleteUser(user: User): Promise<void> {

@@ -46,7 +46,10 @@ class AuthController extends DomainController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      const user = await this.userService.getUserByEmail(req.body.email);
+      const user = await this.userService.getUserByUniqueParams({
+        email: req.body.email
+      });
+
       const userPassword = req.body.password;
       const hashUserPassword = await this.cryptoProvider.hashStringBySHA256(userPassword);
 
@@ -61,12 +64,12 @@ class AuthController extends DomainController {
         role: user.dataValues.role
       };
 
-      const accessToken = this.jwtStrategy.createAccessToken(userPayload);
-      const refreshToken = this.jwtStrategy.createRefreshToken(userPayload);
+      const accessToken = this.jwtStrategy.createJWTToken(userPayload);
+      const refreshToken = this.jwtStrategy.createJWTToken(userPayload, false);
 
-      await this.userService.updateUserAuthData(user, {
+      await this.userService.updateUser(user, {
         refreshToken: refreshToken
-      });
+      }, false);
 
       return res.status(200)
         .cookie('access-token', accessToken, {
@@ -133,9 +136,9 @@ class AuthController extends DomainController {
     try {
       const userId = req.user?.id as string;
       const user = await this.userService.getUserById(userId, false);
-      await this.userService.updateUserAuthData(user, {
+      await this.userService.updateUser(user, {
         refreshToken: null
-      });
+      }, false);
 
       if (req.cookies['refresh-token']) {
         res.clearCookie('refresh-token');
@@ -157,16 +160,18 @@ class AuthController extends DomainController {
   ): Promise<Response | void> {
     try {
       const { token } = req.query;
-      const user = await this.userService.getUserByVerifToken(token as string);
+      const user = await this.userService.getUserByUniqueParams({
+        verifToken: token as string
+      });
 
       if (user.role === 'admin') {
         const verifAdminToken = this.cryptoProvider.generateSecureVerificationToken();
         const verifAdminLink = process.env.CUR_URL + `/auth/signup/verifyAdminRole?token=${verifAdminToken}`;
 
-        await this.userService.updateUserAuthData(user, {
+        await this.userService.updateUser(user, {
           isActivated: user.isActivated,
           verifToken: verifAdminToken
-        });
+        }, false);
 
         await this.mailerTransporter.sendMailByTransporter({
           to: process.env.ADMIN_EMAIL,
@@ -178,10 +183,10 @@ class AuthController extends DomainController {
         });
       }
       else {
-        await this.userService.updateUserAuthData(user, {
+        await this.userService.updateUser(user, {
           isActivated: true,
           verifToken: null
-        });
+        }, false);
       }
 
       return res.redirect(process.env.CUR_URL + '/api');
@@ -200,12 +205,14 @@ class AuthController extends DomainController {
   public async verifyAdminRole(req: Request, res: Response, next: NextFunction) {
     try {
       const { token } = req.query;
-      const user = await this.userService.getUserByVerifToken(token as string);
+      const user = await this.userService.getUserByUniqueParams({
+        verifToken: token as string
+      });
 
-      await this.userService.updateUserAuthData(user, {
+      await this.userService.updateUser(user, {
         isActivated: true,
         verifToken: null
-      });
+      }, false);
 
       await this.mailerTransporter.sendMailByTransporter({
         to: user.email,

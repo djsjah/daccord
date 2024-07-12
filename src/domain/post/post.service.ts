@@ -20,15 +20,23 @@ class PostService {
     'tags'
   ];
 
-  public async getAllUsersPosts(searchSubstring: string): Promise<Post[]> {
-    let posts = [];
+  public async getAllUserPosts(user: IUserPayload, searchSubstring: string): Promise<Post[]> {
+    let posts: Post[] = [];
 
-    if (!searchSubstring) {
+    if (user.role === 'admin' && !searchSubstring) {
       posts = await Post.findAll({
         include: this.postAssociations
       });
     }
-    else {
+    else if (user.role === 'user' && !searchSubstring) {
+      posts = await Post.findAll({
+        where: {
+          authorId: user.id
+        },
+        attributes: this.publicPostData
+      });
+    }
+    else if (user.role === 'admin' && searchSubstring) {
       posts = await Post.findAll({
         where: {
           [Op.or]: [
@@ -43,22 +51,7 @@ class PostService {
         throw new NotFound(`Posts by search substring: ${searchSubstring} - are not found`);
       }
     }
-
-    return posts;
-  }
-
-  public async getAllUserPostsByUserId(user: IUserPayload, searchSubstring: string): Promise<Post[]> {
-    let posts: Post[] = [];
-
-    if (!searchSubstring) {
-      posts = await Post.findAll({
-        where: {
-          authorId: user.id
-        },
-        attributes: this.publicPostData
-      });
-    }
-    else {
+    else if (user.role === 'user' && searchSubstring) {
       posts = await Post.findAll({
         where: {
           authorId: user.id,
@@ -78,7 +71,7 @@ class PostService {
     return posts;
   }
 
-  public async getPostById(user: IUserPayload, postId: string, isMainData: boolean = false): Promise<Post> {
+  public async getUserPostById(user: IUserPayload, postId: string, isMainData: boolean = false): Promise<Post> {
     let post;
 
     if (user.role === 'admin' && !isMainData) {
@@ -121,17 +114,17 @@ class PostService {
     return post;
   }
 
-  public async createPost(user: IUserPayload, postDataCreate: IPostCreate): Promise<Post> {
+  public async createUserPost(user: IUserPayload, postDataCreate: IPostCreate): Promise<Post> {
     const newPost = await Post.create({
       ...postDataCreate
     });
 
     return (
-      await this.getPostById(user, newPost.id)
+      await this.getUserPostById(user, newPost.id)
     );
   }
 
-  public async updatePostById(user: IUserPayload, postId: string, newPostData: IPostUpdate): Promise<Post> {
+  public async updateUserPostById(user: IUserPayload, postId: string, newPostData: IPostUpdate): Promise<Post> {
     if (user.role === 'admin') {
       await Post.update(newPostData, {
         where: {
@@ -149,12 +142,12 @@ class PostService {
     }
 
     return (
-      await this.getPostById(user, postId)
+      await this.getUserPostById(user, postId)
     );
   }
 
-  public async deletePostById(user: IUserPayload, postId: string): Promise<void> {
-    const post = await this.getPostById(user, postId, true);
+  public async deleteUserPostById(user: IUserPayload, postId: string): Promise<void> {
+    const post = await this.getUserPostById(user, postId, true);
     await post.destroy();
   }
 }

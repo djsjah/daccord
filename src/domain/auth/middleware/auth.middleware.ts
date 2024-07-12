@@ -5,11 +5,13 @@ import JWTStrategy from '../../../utils/lib/jwt/jwt.strategy';
 
 const refreshToken = async (req: Request, res: Response) => {
   const userService = dependencyContainer.getInstance<UserService>('userService');
-  await userService.getUserByRefreshToken(req.cookies['refresh-token']);
+  await userService.getUserByUniqueParams({
+    refreshToken: req.cookies['refresh-token']
+  });
 
   const jwtStrategy = dependencyContainer.getInstance<JWTStrategy>('jwtStrategy');
   const userPayload = await jwtStrategy.validateToken(req.cookies['refresh-token']);
-  const accessToken = jwtStrategy.createAccessToken({
+  const accessToken = jwtStrategy.createJWTToken({
     id: userPayload.id,
     name: userPayload.name,
     email: userPayload.email,

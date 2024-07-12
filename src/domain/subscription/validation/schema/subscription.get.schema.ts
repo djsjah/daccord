@@ -1,4 +1,4 @@
 import Joi from 'joi';
 
-const SubscriptionGetByIdSchema = Joi.string().uuid().required();
-export default SubscriptionGetByIdSchema;
+export const SubscriptionGetByIdSchema = Joi.string().uuid().required();
+export const SubscriptionTypeSchema = Joi.string().valid('user', 'subscriber').required();

@@ -11,34 +11,24 @@ class AuthService {
 
   public scheduleDailyCleanupNotVerifData() {
     cron.schedule('0 0 * * *', async () => {
-      await this.deleteAllNonActivatedAccounts();
-      await this.deleteAllVerificationTokens();
+      await this.deleteAllNonVerifData();
     });
   }
 
-  public async deleteAllNonActivatedAccounts(): Promise<void> {
+  public async deleteAllNonVerifData(): Promise<void> {
     try {
-      const nonActivatedUsers = await this.userService.getAllNonActivatedUsers();
+      const { nonActivatedUsers, usersWithVerifToken } = await this.userService.getAllNonVerifUsers();
       const usersToDelete = this.getUsersToDelete(nonActivatedUsers);
+      const usersToUpdate = this.getUsersToDelete(usersWithVerifToken);
 
       await Promise.all(usersToDelete.map(nonActivatedUser =>
         this.userService.deleteUser(nonActivatedUser)
       ));
-    }
-    catch (err) {
-      console.log(err);
-    }
-  }
 
-  public async deleteAllVerificationTokens(): Promise<void> {
-    try {
-      const usersWithVerifToken = await this.userService.getAllUsersWithVerifToken();
-      const usersToDelete = this.getUsersToDelete(usersWithVerifToken);
-
-      await Promise.all(usersToDelete.map(userWithVerifToken =>
-        this.userService.updateUserAuthData(userWithVerifToken, {
+      await Promise.all(usersToUpdate.map(userWithVerifToken =>
+        this.userService.updateUser(userWithVerifToken, {
           verifToken: null
-        })
+        }, false)
       ));
     }
     catch (err) {

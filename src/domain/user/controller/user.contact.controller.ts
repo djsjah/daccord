@@ -12,39 +12,19 @@ class UserContactController {
     this.userContactService = userContactService;
   }
 
-  public async getAllUsersContacts(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+  public async getAllUserContacts(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      const searchSubstring = req.query.search || '';
-      const userContacts = await this.userContactService.getAllUsersContacts(searchSubstring as string);
-
-      return res.status(200).json({
-        status: 200,
-        data: userContacts,
-        message: "List of all contacts of all users"
-      });
-    }
-    catch (err) {
-      next(err);
-    }
-  }
-
-  public async getAllUserContactsByUserId(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<Response | void> {
-    try {
-      const searchSubstring = req.query.search || '';
       const user = req.user as IUserPayload;
-      const userContacts = await this.userContactService.getAllUserContactsByUserId(
+      const searchSubstring = req.query.search as string;
+      const userContacts = await this.userContactService.getAllUserContacts(
         user,
-        searchSubstring as string
+        searchSubstring
       );
 
       return res.status(200).json({
         status: 200,
         data: userContacts,
-        message: "List of all your contacts"
+        message: "List of all contacts"
       });
     }
     catch (err) {
@@ -150,7 +130,9 @@ class UserContactController {
       }
 
       const user = req.user as IUserPayload;
-      await this.userContactService.deleteUserContactById(user, userContactId);
+      const userContact = await this.userContactService.getUserContactById(user, userContactId, true);
+      await this.userContactService.deleteUserContact(userContact);
+
       return res.status(200).json({ status: 200, message: "Сontact successfully deleted" });
     }
     catch (err) {

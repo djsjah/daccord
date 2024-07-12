@@ -318,7 +318,7 @@ paths:
         '401':
           description: Unauthorized - you must sign in
         '404':
-          description: Users contacts are not found
+          description: User contacts are not found
         '422':
           description: Unprocessable entity
         '500':
@@ -455,38 +455,6 @@ paths:
           description: Unauthorized - you must sign in
         '404':
           description: User contact is not found
-        '422':
-          description: Unprocessable entity
-        '500':
-          description: Internal server error
-  /api/users/contacts/admin:
-    get:
-      summary: Get all contacts of all users (For admins)
-      tags:
-        - users contacts
-      security:
-        - BearerAuth: []
-      parameters:
-        - in: query
-          name: search
-          schema:
-            type: string
-            default: ''
-          required: false
-          description: Search string that matches user contact type or value
-      responses:
-        '200':
-          description: List of all contacts of all users
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserContact'
-        '400':
-          description: Bad request
-        '401':
-          description: Unauthorized - you must sign in as admin
-        '404':
-          description: Users contacts are not found
         '422':
           description: Unprocessable entity
         '500':
@@ -677,38 +645,6 @@ paths:
           description: Unprocessable entity
         '500':
           description: Internal server error
-  /api/posts/admin:
-    get:
-      summary: Get all posts of all users (For admins)
-      tags:
-        - posts
-      security:
-        - BearerAuth: []
-      parameters:
-        - in: query
-          name: search
-          schema:
-            type: string
-            default: ''
-          required: false
-          description: Search substring that matches post titles or text
-      responses:
-        '200':
-          description: List of all posts of all users
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Post'
-        '400':
-          description: Bad request
-        '401':
-          description: Unauthorized - you must sign in as admin
-        '404':
-          description: Posts are not found
-        '422':
-          description: Unprocessable entity
-        '500':
-          description: Internal server error
   /api/subscriptions/public:
     post:
       summary: Create a new subscription as subscriber
@@ -752,16 +688,27 @@ paths:
           description: Unprocessable entity
         '500':
           description: Internal server error
-  /api/subscriptions/public/user:
+  /api/subscriptions/public/{subscriptionType}:
     get:
-      summary: Get all user subscriptions by user id
+      summary: Get all subscriptions
       tags:
         - subscriptions
       security:
         - BearerAuth: []
+      parameters:
+        - name: subscriptionType
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - user
+              - subscriber
+          description: |
+            Subscription Type. Example: `user`
       responses:
         '200':
-          description: List of all user subscriptions
+          description: List of all subscriptions
           content:
             application/json:
               schema:
@@ -776,14 +723,24 @@ paths:
           description: Unprocessable entity
         '500':
           description: Internal server error
-  /api/subscriptions/public/user/{subscriptionId}:
+  /api/subscriptions/public/{subscriptionType}/{subscriptionId}:
     get:
-      summary: Get a user subscription by id
+      summary: Get a subscription by id
       tags:
         - subscriptions
       security:
         - BearerAuth: []
       parameters:
+        - name: subscriptionType
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - user
+              - subscriber
+          description: |
+            Subscription Type. Example: `subscriber`
         - name: subscriptionId
           in: path
           required: true
@@ -816,6 +773,16 @@ paths:
       security:
         - BearerAuth: []
       parameters:
+        - name: subscriptionType
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - user
+              - subscriber
+          description: |
+            Subscription Type. Example: `user`
         - name: subscriptionId
           in: path
           required: true
@@ -833,123 +800,6 @@ paths:
           description: Unauthorized - you must sign in
         '404':
           description: Subscription is not found
-        '422':
-          description: Unprocessable entity
-        '500':
-          description: Internal server error
-  /api/subscriptions/public/subscriber:
-    get:
-      summary: Get all subscriber subscriptions by subscriber id
-      tags:
-        - subscriptions
-      security:
-        - BearerAuth: []
-      responses:
-        '200':
-          description: List of all subscriber subscriptions
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Subscription'
-        '400':
-          description: Bad request
-        '401':
-          description: Unauthorized - you must sign in
-        '404':
-          description: Subscriptions are not found
-        '422':
-          description: Unprocessable entity
-        '500':
-          description: Internal server error
-  /api/subscriptions/public/subscriber/{subscriptionId}:
-    get:
-      summary: Get a subscriber subscription by id
-      tags:
-        - subscriptions
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: subscriptionId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-          description: |
-            Subscription ID. Example: `6dcd8f9a-3b7c-4e5f-ba9e-2f8a7f8f8f8f`
-      responses:
-        '200':
-          description: Subscriber subscription details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Subscription'
-        '400':
-          description: Bad request
-        '401':
-          description: Unauthorized - you must sign in
-        '404':
-          description: Subscriptions are not found
-        '422':
-          description: Unprocessable entity
-        '500':
-          description: Internal server error
-    delete:
-      summary: Delete a subscriber subscription by id
-      tags:
-        - subscriptions
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: subscriptionId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-          description: |
-            Subscription ID. Example: `6dcd8f9a-3b7c-4e5f-ba9e-2f8a7f8f8f8f`
-      responses:
-        '200':
-          description: Subscription successfully deleted
-        '400':
-          description: Bad request
-        '401':
-          description: Unauthorized - you must sign in
-        '404':
-          description: Subscription is not found
-        '422':
-          description: Unprocessable entity
-        '500':
-          description: Internal server error
-  /api/subscriptions/admin:
-    get:
-      summary: Get all subscriptions of all users (For admins)
-      tags:
-        - subscriptions
-      security:
-        - BearerAuth: []
-      parameters:
-        - in: query
-          name: search
-          schema:
-            type: string
-            default: ''
-          required: false
-          description: Search substring that matches subscription type, or period, or userId, or subscriberId
-      responses:
-        '200':
-          description: List of all subscriptions of all users
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Subscription'
-        '400':
-          description: Bad request
-        '401':
-          description: Unauthorized - you must sign in as admin
-        '404':
-          description: Subscriptions are not found
         '422':
           description: Unprocessable entity
         '500':

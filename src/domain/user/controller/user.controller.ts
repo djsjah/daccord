@@ -24,8 +24,8 @@ class UserController extends DomainController {
 
   public async getAllUsers(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      const searchSubstring = req.query.search || '';
-      const users = await this.userService.getAllUsers(searchSubstring as string);
+      const searchSubstring = req.query.search as string;
+      const users = await this.userService.getAllUsers(searchSubstring);
       return res.status(200).json({ status: 200, data: users, message: "List of all users" });
     }
     catch (err) {
@@ -70,7 +70,8 @@ class UserController extends DomainController {
         newUserData.password = await this.cryptoProvider.hashStringBySHA256(newUserData.password);
       }
 
-      const updatedUser = await this.userService.updateUserById(userId, {
+      const user = await this.userService.getUserById(userId);
+      const updatedUser = await this.userService.updateUser(user, {
         ...newUserData,
         refreshToken: null
       });
@@ -119,7 +120,8 @@ class UserController extends DomainController {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      await this.userService.deleteUserById(userId);
+      const user = await this.userService.getUserById(userId, false);
+      await this.userService.deleteUser(user);
       return res.status(200).json({ status: 200, message: "User successfully deleted" });
     }
     catch (err) {
@@ -134,8 +136,11 @@ class UserController extends DomainController {
   ): Promise<void | Response> {
     try {
       const { token } = req.query;
-      const user = await this.userService.getUserByVerifToken(token as string);
-      const userContacts = await this.userContactService.getAllUserContactsByUserId({
+      const user = await this.userService.getUserByUniqueParams({
+        verifToken: token as string
+      });
+
+      const userContacts = await this.userContactService.getAllUserContacts({
         id: user.id,
         name: user.name,
         email: user.email,
@@ -157,7 +162,7 @@ class UserController extends DomainController {
         }
       );
 
-      await this.userService.updateUserAuthData(user, newUserData);
+      await this.userService.updateUser(user, newUserData, false);
       await this.userContactService.deleteUserContact(userContacts[0]);
 
       return res.redirect(process.env.CUR_URL + '/api');
@@ -208,7 +213,7 @@ class UserController extends DomainController {
         <p>Please confirm your new email by clicking on the link: <strong><a style="text-decoration: underline;" href="${verifLink}">Change your email</a></strong></p>`
       });
 
-      const userNewEmails = await this.userContactService.getAllUserContactsByUserId({
+      const userNewEmails = await this.userContactService.getAllUserContacts({
         id: userPayload.id,
         name: userPayload.name,
         email: userPayload.email,
@@ -240,8 +245,8 @@ class UserController extends DomainController {
     newUserData: any,
     userUpdatedPayload: IUserPayload
   ) {
-    const accessToken = await this.jwtStrategy.createAccessToken(userUpdatedPayload);
-    const refreshToken = await this.jwtStrategy.createRefreshToken(userUpdatedPayload);
+    const accessToken = await this.jwtStrategy.createJWTToken(userUpdatedPayload);
+    const refreshToken = await this.jwtStrategy.createJWTToken(userUpdatedPayload, false);
 
     res.cookie('access-token', accessToken, {
       httpOnly: true,
