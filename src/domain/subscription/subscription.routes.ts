@@ -26,13 +26,13 @@ class SubscriptionRouter extends AbstractRouter {
       '/public', (...args) => this.subscrController.createSubscriptionAsSubscriber(...args)
     );
     this.subscrRouter.get(
-      '/public/:subscriptionType', (...args) => this.subscrController.getAllSubscriptions(...args)
+      '/public/:subscriptionRole', (...args) => this.subscrController.getAllSubscriptions(...args)
     );
     this.subscrRouter.get(
-      '/public/:subscriptionType/:subscriptionId', (...args) => this.subscrController.getSubscriptionById(...args)
+      '/public/:subscriptionRole/:subscriptionId', (...args) => this.subscrController.getSubscriptionById(...args)
     );
     this.subscrRouter.delete(
-      '/public/:subscriptionType/:subscriptionId',
+      '/public/:subscriptionRole/:subscriptionId',
       (...args) => this.subscrController.deleteSubscriptionById(...args)
     );
 

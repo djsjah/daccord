@@ -1,12 +1,13 @@
+import { Op } from 'sequelize';
 import { Request, Response, NextFunction } from 'express';
-import {
-  SubscriptionGetByIdSchema,
-  SubscriptionTypeSchema
-} from './validation/schema/subscription.get.schema';
+import SubscriptionService from './subscription.service';
+import ValidateReqParam from '../validation/decorator/req.param.decorator';
+import ValidateReqBody from '../validation/decorator/req.body.decorator';
 import IUserPayload from '../auth/validation/interface/user.payload.interface';
+import IdSchema from '../validation/schema/param.schema';
+import SubscriptionRoleSchema from './validation/schema/subscription.param.schema';
 import SubscriptionCreateSchema from './validation/schema/subscription.create.schema';
 import SubscriptionUpdateSchema from './validation/schema/subscription.update.schema';
-import SubscriptionService from './subscription.service';
 
 class SubscriptionController {
   private readonly subscriptionService: SubscriptionService;
@@ -17,29 +18,32 @@ class SubscriptionController {
 
   public async getAllSubscriptions(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      const subscriptionType = req.params.subscriptionType;
-      const { error } = SubscriptionTypeSchema.validate(subscriptionType);
+      const user = req.user as IUserPayload;
+      const subscriptionRole = req.params.subscriptionRole as 'user' | 'subscriber';
+      const searchSubstring = req.query.search;
 
+      let subscriptions = [];
+
+      const { error } = SubscriptionRoleSchema.validate(subscriptionRole);
       if (error) {
         return res.status(422).send(`Validation error: ${error.details[0].message}`);
       }
 
-      const user = req.user as IUserPayload;
-      const searchSubstring = req.query.search as string;
-      let subscriptions;
-
-      if (subscriptionType === 'user') {
-        subscriptions = await this.subscriptionService.getAllSubscriptions(user, searchSubstring, {
-          userId: user.id
-        });
+      if (!searchSubstring) {
+        subscriptions = await this.subscriptionService.getAllSubscriptions({}, user, subscriptionRole);
       }
-      else if (subscriptionType === 'subscriber') {
-        subscriptions = await this.subscriptionService.getAllSubscriptions(user, searchSubstring, {
-          subscriberId: user.id
-        });
+      else {
+        subscriptions = await this.subscriptionService.getAllSubscriptions({
+          where: {
+            [Op.or]: [
+              { type: { [Op.like]: `%${searchSubstring}%` } },
+              { period: { [Op.like]: `%${searchSubstring}%` } },
+              { userId: { [Op.like]: `%${searchSubstring}%` } },
+              { subscriberId: { [Op.like]: `%${searchSubstring}%` } }
+            ]
+          }
+        }, user, subscriptionRole);
       }
-
-      subscriptions = await this.subscriptionService.getAllSubscriptions(user, searchSubstring);
 
       return res.status(200).json({
         status: 200,
@@ -52,42 +56,17 @@ class SubscriptionController {
     }
   }
 
-  public async getSubscriptionById(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<Response | void> {
+  @ValidateReqParam('subscriptionRole', SubscriptionRoleSchema)
+  @ValidateReqParam('subscriptionId', IdSchema)
+  public async getSubscriptionById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      const subscriptionId = req.params.subscriptionId;
-      const subscriptionIdValid = SubscriptionGetByIdSchema.validate(subscriptionId);
-
-      if (subscriptionIdValid.error) {
-        return res.status(422).send(`Validation error: ${subscriptionIdValid.error.details[0].message}`);
-      }
-
-      const subscriptionType = req.params.subscriptionType;
-      const subscriptionTypeValid = SubscriptionTypeSchema.validate(subscriptionType);
-
-      if (subscriptionTypeValid.error) {
-        return res.status(422).send(`Validation error: ${subscriptionTypeValid.error.details[0].message}`);
-      }
-
       const user = req.user as IUserPayload;
-      let subscription;
-
-      if (subscriptionType === 'user') {
-        subscription = await this.subscriptionService.getSubscriptionById(user, subscriptionId, {
-          userId: user.id
-        });
-
-      }
-      else if (subscriptionType === 'subscriber') {
-        subscription = await this.subscriptionService.getSubscriptionById(user, subscriptionId, {
-          subscriberId: user.id
-        });
-      }
-
-      subscription = await this.subscriptionService.getSubscriptionById(user, subscriptionId);
+      const subscriptionRole = req.params.subscriptionRole as 'user' | 'subscriber';
+      const subscription = await this.subscriptionService.getSubscriptionByUniqueParams({
+        where: {
+          id: req.params.subscriptionId
+        }
+      }, user, subscriptionRole);
 
       return res.status(200).json({
         status: 200,
@@ -100,20 +79,17 @@ class SubscriptionController {
     }
   }
 
+  @ValidateReqBody(SubscriptionCreateSchema)
   public async createSubscriptionAsSubscriber(
     req: Request,
     res: Response,
     next: NextFunction
-  ): Promise<Response | void> {
+  ): Promise<Response | void>
+  {
     try {
       const subscriptionDataCreate = req.body;
-      const { error } = SubscriptionCreateSchema.validate(subscriptionDataCreate);
-
-      if (error) {
-        return res.status(422).send(`Validation error: ${error.details[0].message}`);
-      }
-
       const subscriber = req.user as IUserPayload;
+
       subscriptionDataCreate.subscriberName = subscriber.name;
       subscriptionDataCreate.subscriberId = subscriber.id;
 
@@ -133,31 +109,24 @@ class SubscriptionController {
     }
   }
 
+  @ValidateReqParam('subscriptionId', IdSchema)
+  @ValidateReqBody(SubscriptionUpdateSchema)
   public async updateSubscriptionById(
     req: Request,
     res: Response,
     next: NextFunction
-  ): Promise<Response | void> {
+  ): Promise<Response | void>
+  {
     try {
-      const subscriptionId = req.params.subscriptionId;
-      const subscriptionIdValid = SubscriptionGetByIdSchema.validate(subscriptionId);
+      const subscription = await this.subscriptionService.getSubscriptionByUniqueParams({
+        where: {
+          id: req.params.subscriptionId
+        }
+      });
 
-      if (subscriptionIdValid.error) {
-        return res.status(422).send(`Validation error: ${subscriptionIdValid.error.details[0].message}`);
-      }
-
-      const newSubscriptionData = req.body;
-      const newSubscriptionDataValid = SubscriptionUpdateSchema.validate(newSubscriptionData);
-
-      if (newSubscriptionDataValid.error) {
-        return res.status(422).send(`Validation error: ${newSubscriptionDataValid.error.details[0].message}`);
-      }
-
-      const user = req.user as IUserPayload;
-      const updatedSubscription = await this.subscriptionService.updateSubscriptionById(
-        user,
-        subscriptionId,
-        newSubscriptionData
+      const updatedSubscription = await this.subscriptionService.updateSubscription(
+        subscription,
+        req.body
       );
 
       return res.status(200).json({
@@ -171,40 +140,23 @@ class SubscriptionController {
     }
   }
 
+  @ValidateReqParam('subscriptionId', IdSchema)
+  @ValidateReqParam('subscriptionRole', SubscriptionRoleSchema)
   public async deleteSubscriptionById(
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<Response | void> {
     try {
-      const subscriptionId = req.params.subscriptionId;
-      const subscriptionIdValid = SubscriptionGetByIdSchema.validate(subscriptionId);
-
-      if (subscriptionIdValid.error) {
-        return res.status(422).send(`Validation error: ${subscriptionIdValid.error.details[0].message}`);
-      }
-
-      const subscriptionType = req.params.subscriptionType;
-      const subscriptionTypeValid = SubscriptionTypeSchema.validate(subscriptionType);
-
-      if (subscriptionTypeValid.error) {
-        return res.status(422).send(`Validation error: ${subscriptionTypeValid.error.details[0].message}`);
-      }
-
       const user = req.user as IUserPayload;
+      const subscriptionRole = req.params.subscriptionRole as 'user' | 'subscriber';
+      const subscription = await this.subscriptionService.getSubscriptionByUniqueParams({
+        where: {
+          id: req.params.subscriptionId
+        }
+      }, user, subscriptionRole);
 
-      if (subscriptionType === 'user') {
-        await this.subscriptionService.deleteSubscriptionById(user, subscriptionId, {
-          userId: user.id
-        });
-      }
-      else if (subscriptionType === 'subscriber') {
-        await this.subscriptionService.deleteSubscriptionById(user, subscriptionId, {
-          subscriberId: user.id
-        });
-      }
-
-      await this.subscriptionService.deleteSubscriptionById(user, subscriptionId);
+      await this.subscriptionService.deleteSubscription(subscription);
       return res.status(200).json({ status: 200, message: "Subscription successfully deleted" });
     }
     catch (err) {

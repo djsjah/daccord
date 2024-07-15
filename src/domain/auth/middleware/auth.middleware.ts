@@ -6,7 +6,9 @@ import JWTStrategy from '../../../utils/lib/jwt/jwt.strategy';
 const refreshToken = async (req: Request, res: Response) => {
   const userService = dependencyContainer.getInstance<UserService>('userService');
   await userService.getUserByUniqueParams({
-    refreshToken: req.cookies['refresh-token']
+    where: {
+      refreshToken: req.cookies['refresh-token']
+    }
   });
 
   const jwtStrategy = dependencyContainer.getInstance<JWTStrategy>('jwtStrategy');

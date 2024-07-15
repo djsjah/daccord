@@ -1,7 +1,10 @@
-import { NextFunction, Request, Response } from 'express';
-import IUserPayload from '../auth/validation/interface/user.payload.interface';
+import { Op } from 'sequelize';
+import { Request, Response, NextFunction } from 'express';
 import PostService from './post.service';
-import PostGetByIdSchema from './validation/schema/post.get.schema';
+import ValidateReqParam from '../validation/decorator/req.param.decorator';
+import ValidateReqBody from '../validation/decorator/req.body.decorator';
+import IUserPayload from '../auth/validation/interface/user.payload.interface';
+import IdSchema from '../validation/schema/param.schema';
 import PostCreateSchema from './validation/schema/post.create.schema';
 import PostUpdateSchema from './validation/schema/post.update.schema';
 
@@ -11,8 +14,22 @@ class PostController {
   public async getAllUserPosts(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = req.user as IUserPayload;
-      const searchSubstring = req.query.search as string;
-      const posts = await this.postService.getAllUserPosts(user, searchSubstring);
+      const searchSubstring = req.query.search;
+      let posts = [];
+
+      if (!searchSubstring) {
+        posts = await this.postService.getAllUserPosts({}, user);
+      }
+      else {
+        posts = await this.postService.getAllUserPosts({
+          where: {
+            [Op.or]: [
+              { title: { [Op.like]: `%${searchSubstring}%` } },
+              { content: { [Op.like]: `%${searchSubstring}%` } }
+            ]
+          }
+        }, user);
+      }
 
       return res.status(200).json({status: 200, data: posts, message: "List of all posts" });
     }
@@ -21,17 +38,15 @@ class PostController {
     }
   }
 
+  @ValidateReqParam('postId', IdSchema)
   public async getUserPostById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      const postId = req.params.postId;
-      const { error } = PostGetByIdSchema.validate(postId);
-
-      if (error) {
-        return res.status(422).send(`Validation error: ${error.details[0].message}`);
-      }
-
       const user = req.user as IUserPayload;
-      const post = await this.postService.getUserPostById(user, postId);
+      const post = await this.postService.getPostByUniqueParams({
+        where: {
+          id: req.params.postId
+        }
+      }, user);
 
       return res.status(200).json({
         status: 200,
@@ -44,18 +59,12 @@ class PostController {
     }
   }
 
+  @ValidateReqBody(PostCreateSchema)
   public async createUserPost(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      const postDataCreate = req.body;
-      const { error } = PostCreateSchema.validate(postDataCreate);
-
-      if (error) {
-        return res.status(422).send(`Validation error: ${error.details[0].message}`);
-      }
-
       const user = req.user as IUserPayload;
       const newPost = await this.postService.createUserPost(user, {
-        ...postDataCreate,
+        ...req.body,
         authorId: user.id
       });
 
@@ -70,25 +79,18 @@ class PostController {
     }
   }
 
+  @ValidateReqParam('postId', IdSchema)
+  @ValidateReqBody(PostUpdateSchema)
   public async updateUserPostById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      const postId = req.params.postId;
-      const postIdValid = PostGetByIdSchema.validate(postId);
-
-      if (postIdValid.error) {
-        return res.status(422).send(`Validation error: ${postIdValid.error.details[0].message}`);
-      }
-
-      const newPostData = req.body;
-      const newPostDataValid = PostUpdateSchema.validate(newPostData);
-
-      if (newPostDataValid.error) {
-        return res.status(422).send(`Validation error: ${newPostDataValid.error.details[0].message}`);
-      }
-
       const user = req.user as IUserPayload;
-      const updatedPost = await this.postService.updateUserPostById(user, postId, newPostData);
+      const post = await this.postService.getPostByUniqueParams({
+        where: {
+          id: req.params.postId
+        }
+      }, user);
 
+      const updatedPost = await this.postService.updateUserPost(post, req.body);
       return res.status(200).json({ status: 200, data: updatedPost, message: "Post successfully updated" });
     }
     catch (err) {
@@ -96,18 +98,17 @@ class PostController {
     }
   }
 
+  @ValidateReqParam('postId', IdSchema)
   public async deleteUserPostById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      const postId = req.params.postId;
-      const { error } = PostGetByIdSchema.validate(postId);
-
-      if (error) {
-        return res.status(422).send(`Validation error: ${error.details[0].message}`);
-      }
-
       const user = req.user as IUserPayload;
-      await this.postService.deleteUserPostById(user, postId);
+      const post = await this.postService.getPostByUniqueParams({
+        where: {
+          id: req.params.postId
+        }
+      }, user);
 
+      await this.postService.deleteUserPost(post);
       return res.status(200).json({ status: 200, message: "Post successfully deleted" });
     }
     catch (err) {

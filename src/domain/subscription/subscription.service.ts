@@ -1,117 +1,103 @@
-import { Op } from 'sequelize';
+import { FindOptions } from 'sequelize';
 import { NotFound } from 'http-errors';
+import Subscription from '../../database/models/subscription/subscription.model';
+import DomainService from '../domain.service.abstract';
+import UserService from '../user/service/user.service';
+import IRoleSettings from '../role.settings.interface';
 import IUserPayload from '../auth/validation/interface/user.payload.interface';
-import ISubscriptionGet from './validation/interface/subscription.get.interface';
 import ISubscriptionCreate from './validation/interface/subscription.create.interface';
 import ISubscriptionUpdate from './validation/interface/subscription.update.interface';
-import Subscription from '../../database/models/subscription/subscription.model';
-import UserService from '../user/service/user.service';
 
-class SubscriptionService {
+class SubscriptionService extends DomainService {
   private readonly userService: UserService;
-  private readonly publicSubscrData = [
-    'id',
-    'type',
-    'period',
-    'userName',
-    'subscriberName'
-  ];
+  protected override readonly roleSettings: IRoleSettings = {
+    admin: {},
+    user: {
+      attributes: [
+        'id',
+        'type',
+        'period',
+        'userName',
+        'subscriberName'
+      ]
+    }
+  };
 
   constructor(userService: UserService) {
+    super();
     this.userService = userService;
   }
 
-  public async getAllSubscriptions(
+  protected override findOptionsRoleFilter(findOptions: FindOptions, user: IUserPayload): FindOptions {
+    const roleSpecificOptions = this.roleSettings[user.role];
+    Object.assign(findOptions, roleSpecificOptions);
+    return findOptions;
+  }
+
+  private findOptionsSubscriptionFilter(
+    findOptions: FindOptions,
+    userSubscriptionRole: 'user' | 'subscriber',
+    id: string
+  ): FindOptions
+  {
+    switch (userSubscriptionRole) {
+      case 'subscriber':
+        findOptions.where = {
+          ...findOptions.where,
+          subscriberId: id
+        };
+        break;
+
+      case 'user':
+        findOptions.where = {
+          ...findOptions.where,
+          userId: id
+        };
+        break;
+    }
+
+    return findOptions;
+  }
+
+  private applyAllFilters(
+    findOptions: FindOptions,
     user: IUserPayload,
-    searchSubstring: string,
-    subscrType: ISubscriptionGet = {}
-  ): Promise<Subscription[]> {
-    let subscriptions: Subscription[] = [];
+    subscriptionRole: 'user' | 'subscriber'
+  )
+  {
+    findOptions = this.findOptionsSubscriptionFilter(findOptions, subscriptionRole, user.id);
+    findOptions = this.findOptionsRoleFilter(findOptions, user);
+    return findOptions;
+  }
 
-    if (user.role === 'admin' && !searchSubstring) {
-      subscriptions = await Subscription.findAll();
-    }
-    else if (user.role === 'user' && !searchSubstring) {
-      subscriptions = await Subscription.findAll({
-        where: {
-          ...subscrType
-        },
-        attributes: this.publicSubscrData
-      });
-    }
-    else if (user.role === 'admin' && searchSubstring) {
-      subscriptions = await Subscription.findAll({
-        where: {
-          [Op.or]: [
-            { type: { [Op.like]: `%${searchSubstring}%` } },
-            { period: { [Op.like]: `%${searchSubstring}%` } },
-            { userId: { [Op.like]: `%${searchSubstring}%` } },
-            { subscriberId: { [Op.like]: `%${searchSubstring}%` } }
-          ]
-        }
-      });
-
-      if (subscriptions.length === 0) {
-        throw new NotFound(`Subscriptions by search substring: ${searchSubstring} - are not found`);
-      }
-    }
-    else if (user.role === 'user' && searchSubstring) {
-      subscriptions = await Subscription.findAll({
-        where: {
-          ...subscrType,
-          [Op.or]: [
-            { type: { [Op.like]: `%${searchSubstring}%` } },
-            { period: { [Op.like]: `%${searchSubstring}%` } },
-            { userId: { [Op.like]: `%${searchSubstring}%` } },
-            { subscriberId: { [Op.like]: `%${searchSubstring}%` } }
-          ]
-        },
-        attributes: this.publicSubscrData
-      });
-
-      if (subscriptions.length === 0) {
-        throw new NotFound(`Subscriptions by search substring: ${searchSubstring} - are not found`);
-      }
+  public async getAllSubscriptions(
+    findOptions: FindOptions,
+    user?: IUserPayload,
+    subscriptionRole?: 'user' | 'subscriber'
+  ): Promise<Subscription[]>
+  {
+    if (user && subscriptionRole) {
+      findOptions = this.applyAllFilters(findOptions, user, subscriptionRole);
     }
 
+    const subscriptions = await Subscription.findAll(findOptions);
     return subscriptions;
   }
 
-  public async getSubscriptionById(
-    user: IUserPayload,
-    subscriptionId: string,
-    subscrType: ISubscriptionGet = {},
-    isMainData: boolean = false
-  ): Promise<Subscription> {
-    let subscription;
+  public async getSubscriptionByUniqueParams(
+    findOptions: FindOptions,
+    user?: IUserPayload,
+    subscriptionRole?: 'user' | 'subscriber'
+  ): Promise<Subscription>
+  {
+    if (user && subscriptionRole) {
+      findOptions = this.applyAllFilters(findOptions, user, subscriptionRole);
+    }
 
-    if (user.role === 'admin') {
-      subscription = await Subscription.findOne({
-        where: {
-          id: subscriptionId
-        }
-      });
-    }
-    else if (user.role === 'user' && !isMainData) {
-      subscription = await Subscription.findOne({
-        where: {
-          id: subscriptionId,
-          ...subscrType
-        },
-        attributes: this.publicSubscrData
-      });
-    }
-    else if (user.role === 'user' && isMainData) {
-      subscription = await Subscription.findOne({
-        where: {
-          id: subscriptionId,
-          ...subscrType
-        }
-      });
-    }
+    const subscription = await Subscription.findOne(findOptions);
 
     if (!subscription) {
-      throw new NotFound(`Subscription with id: ${subscriptionId} - is not found`);
+      throw new NotFound("Subscription is not found");
     }
 
     return subscription;
@@ -120,9 +106,12 @@ class SubscriptionService {
   public async createSubscriptionAsSubscriber(
     subscriber: IUserPayload,
     subscriptionDataCreate: ISubscriptionCreate
-  ): Promise<Subscription> {
+  ): Promise<Subscription>
+  {
     const user = await this.userService.getUserByUniqueParams({
-      name: subscriptionDataCreate.userName
+      where: {
+        name: subscriptionDataCreate.userName
+      }
     });
 
     const subscription = await Subscription.create({
@@ -131,30 +120,32 @@ class SubscriptionService {
     });
 
     return (
-      await this.getSubscriptionById(subscriber, subscription.id, {
-        subscriberId: subscriber.id
+      await this.getSubscriptionByUniqueParams({
+        where: {
+          id: subscription.id
+        }
+      }, subscriber)
+    );
+  }
+
+  public async updateSubscription(
+    subscription: Subscription,
+    newSubscriptionData: ISubscriptionUpdate
+  ): Promise<Subscription>
+  {
+    Object.assign(subscription, newSubscriptionData);
+    await subscription.save();
+
+    return (
+      await this.getSubscriptionByUniqueParams({
+        where: {
+          id: subscription.id
+        }
       })
     );
   }
 
-  public async updateSubscriptionById(
-    user: IUserPayload,
-    subscriptionId: string,
-    newSubscriptionData: ISubscriptionUpdate
-  ): Promise<Subscription> {
-    const subscription = await this.getSubscriptionById(user, subscriptionId);
-    Object.assign(subscription, newSubscriptionData);
-    await subscription.save();
-
-    return subscription;
-  }
-
-  public async deleteSubscriptionById(
-    user: IUserPayload,
-    subscriptionId: string,
-    subscrType: ISubscriptionGet = {}
-  ): Promise<void> {
-    const subscription = await this.getSubscriptionById(user, subscriptionId, subscrType, true);
+  public async deleteSubscription(subscription: Subscription): Promise<void> {
     await subscription.destroy();
   }
 }

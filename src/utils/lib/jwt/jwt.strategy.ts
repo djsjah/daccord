@@ -2,6 +2,7 @@ import jwt, { Secret } from 'jsonwebtoken';
 import { Unauthorized } from 'http-errors';
 import IUserPayload from '../../../domain/auth/validation/interface/user.payload.interface';
 
+
 class JWTStrategy {
   private readonly secretKey: Secret = process.env.JWT_SECRET!;
 

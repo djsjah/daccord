@@ -1,158 +1,96 @@
-import { Op } from 'sequelize';
+import { FindOptions } from 'sequelize';
 import { NotFound } from 'http-errors';
 import User from '../../../database/models/user/user.model';
-import IUserPayload from '../../auth/validation/interface/user.payload.interface';
 import UserContact from '../../../database/models/user/user.contact.model';
+import DomainService from '../../domain.service.abstract';
+import IRoleSettings from '../../role.settings.interface';
+import IUserPayload from '../../auth/validation/interface/user.payload.interface';
 import IUserContactCreate from '../validation/interface/user.contact.create.interface';
 import IUserContactUpdate from '../validation/interface/update/user.contact.update.interface';
 
-class UserContactService {
-  private readonly userContactAssociations = [
-    { model: User, as: 'user' }
-  ];
-
-  private readonly publicUserContactData = [
-    'id',
-    'type',
-    'value'
-  ];
-
-  public async getAllUserContacts(user: IUserPayload, searchSubstring: string): Promise<UserContact[]> {
-    let userContacts: UserContact[] = [];
-
-    if (user.role === 'admin' && !searchSubstring) {
-      userContacts = await UserContact.findAll({
-        include: this.userContactAssociations
-      });
+class UserContactService extends DomainService {
+  protected override readonly roleSettings: IRoleSettings = {
+    admin: {
+      include: [
+        { model: User, as: 'user' }
+      ]
+    },
+    user: {
+      attributes: [
+        'id',
+        'type',
+        'value'
+      ]
     }
-    else if (user.role === 'user' && !searchSubstring) {
-      userContacts = await UserContact.findAll({
-        where: {
-          userId: user.id
-        },
-        attributes: this.publicUserContactData
-      });
-    }
-    else if (user.role === 'admin' && searchSubstring) {
-      userContacts = await UserContact.findAll({
-        where: {
-          [Op.or]: [
-            { type: { [Op.like]: `%${searchSubstring}%` } },
-            { value: { [Op.like]: `%${searchSubstring}%` } }
-          ]
-        },
-        include: this.userContactAssociations
-      });
+  };
 
-      if (userContacts.length === 0) {
-        throw new NotFound(`User contacts by search substring: ${searchSubstring} - are not found`);
-      }
-    }
-    else if (user.role === 'user' && searchSubstring) {
-      userContacts = await UserContact.findAll({
-        where: {
-          userId: user.id,
-          [Op.or]: [
-            { type: { [Op.like]: `%${searchSubstring}%` } },
-            { value: { [Op.like]: `%${searchSubstring}%` } }
-          ]
-        },
-        attributes: this.publicUserContactData
-      });
-
-      if (userContacts.length === 0) {
-        throw new NotFound(`User contacts by search substring: ${searchSubstring} - are not found`);
+  protected override findOptionsRoleFilter(findOptions: FindOptions, user: IUserPayload): FindOptions {
+    const roleSpecificOptions = this.roleSettings[user.role];
+    if (user.role === 'user') {
+      findOptions.where = {
+        ...findOptions.where,
+        userId: user.id
       }
     }
 
+    Object.assign(findOptions, roleSpecificOptions);
+    return findOptions;
+  }
+
+  public async getAllUserContacts(findOptions: FindOptions, user?: IUserPayload): Promise<UserContact[]> {
+    findOptions = user ?
+      this.findOptionsRoleFilter(findOptions, user) :
+      findOptions;
+
+    const userContacts = await UserContact.findAll(findOptions);
     return userContacts;
   }
 
-  public async getUserContactById(
-    user: IUserPayload,
-    userContactId: string,
-    isMainData: boolean = false
-  ): Promise<UserContact> {
-    let userContact;
+  public async getUserContactByUniqueParams(
+    findOptions: FindOptions,
+    user?: IUserPayload
+  ): Promise<UserContact>
+  {
+    findOptions = user ?
+      this.findOptionsRoleFilter(findOptions, user) :
+      findOptions;
 
-    if (user.role === 'admin' && !isMainData) {
-      userContact = await UserContact.findOne({
-        where: {
-          id: userContactId
-        },
-        include: this.userContactAssociations
-      });
-    }
-    else if (user.role === 'admin' && isMainData) {
-      userContact = await UserContact.findOne({
-        where: {
-          id: userContactId
-        }
-      });
-    }
-    else if (user.role === 'user' && !isMainData) {
-      userContact = await UserContact.findOne({
-        where: {
-          id: userContactId,
-          userId: user.id
-        },
-        attributes: this.publicUserContactData
-      });
-    }
-    else if (user.role === 'user' && isMainData) {
-      userContact = await UserContact.findOne({
-        where: {
-          id: userContactId,
-          userId: user.id
-        }
-      });
-    }
+    const userContact = await UserContact.findOne(findOptions);
 
     if (!userContact) {
-      throw new NotFound(`Contact with id: ${userContactId} - is not found`);
+      throw new NotFound("User contact is not found");
     }
 
     return userContact;
   }
 
-  public async createUserContactByUserId(
+  public async createUserContact(
     user: IUserPayload,
     userContactDataCreate: IUserContactCreate
-  ): Promise<UserContact> {
+  ): Promise<UserContact>
+  {
     const newUserContact = await UserContact.create({
       ...userContactDataCreate,
       userId: user.id
     });
 
     return (
-      await this.getUserContactById(user, newUserContact.id)
+      await this.getUserContactByUniqueParams({
+        where: {
+          id: newUserContact.id
+        }
+      }, user)
     );
   }
 
-  public async updateUserContactById(
-    user: IUserPayload,
-    userContactId: string,
+  public async updateUserContact(
+    userContact: UserContact,
     newUserContactData: IUserContactUpdate
-  ): Promise<UserContact> {
-    if (user.role === 'admin') {
-      await UserContact.update(newUserContactData, {
-        where: {
-          id: userContactId
-        }
-      })
-    }
-    else if (user.role === 'user') {
-      await UserContact.update(newUserContactData, {
-        where: {
-          id: userContactId,
-          userId: user.id
-        }
-      })
-    }
-
-    return (
-      await this.getUserContactById(user, userContactId)
-    );
+  ): Promise<UserContact>
+  {
+    Object.assign(userContact, newUserContactData);
+    await userContact.save();
+    return userContact;
   }
 
   public async deleteUserContact(userContact: UserContact): Promise<void> {

@@ -688,7 +688,7 @@ paths:
           description: Unprocessable entity
         '500':
           description: Internal server error
-  /api/subscriptions/public/{subscriptionType}:
+  /api/subscriptions/public/{subscriptionRole}:
     get:
       summary: Get all subscriptions
       tags:
@@ -696,7 +696,7 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - name: subscriptionType
+        - name: subscriptionRole
           in: path
           required: true
           schema:
@@ -705,7 +705,7 @@ paths:
               - user
               - subscriber
           description: |
-            Subscription Type. Example: `user`
+            User Subscription Role. Example: `user`
       responses:
         '200':
           description: List of all subscriptions
@@ -723,7 +723,7 @@ paths:
           description: Unprocessable entity
         '500':
           description: Internal server error
-  /api/subscriptions/public/{subscriptionType}/{subscriptionId}:
+  /api/subscriptions/public/{subscriptionRole}/{subscriptionId}:
     get:
       summary: Get a subscription by id
       tags:
@@ -731,7 +731,7 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - name: subscriptionType
+        - name: subscriptionRole
           in: path
           required: true
           schema:
@@ -740,7 +740,7 @@ paths:
               - user
               - subscriber
           description: |
-            Subscription Type. Example: `subscriber`
+            User Subscription Role. Example: `subscriber`
         - name: subscriptionId
           in: path
           required: true
@@ -773,7 +773,7 @@ paths:
       security:
         - BearerAuth: []
       parameters:
-        - name: subscriptionType
+        - name: subscriptionRole
           in: path
           required: true
           schema:
@@ -782,7 +782,7 @@ paths:
               - user
               - subscriber
           description: |
-            Subscription Type. Example: `user`
+            User Subscription Role. Example: `user`
         - name: subscriptionId
           in: path
           required: true

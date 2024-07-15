@@ -1,114 +1,63 @@
-import { Op } from 'sequelize';
+import { FindOptions } from 'sequelize';
 import { NotFound } from 'http-errors';
 import Post from '../../database/models/post/post.model';
 import User from '../../database/models/user/user.model';
+import DomainService from '../domain.service.abstract';
+import IRoleSettings from '../role.settings.interface';
 import IUserPayload from '../auth/validation/interface/user.payload.interface';
 import IPostCreate from './validation/interface/post.create.interface';
 import IPostUpdate from './validation/interface/post.update.interface';
 
-class PostService {
-  private readonly postAssociations = [
-    { model: User, as: 'author' }
-  ];
-
-  private readonly publicPostData = [
-    'id',
-    'title',
-    'access',
-    'content',
-    'rating',
-    'tags'
-  ];
-
-  public async getAllUserPosts(user: IUserPayload, searchSubstring: string): Promise<Post[]> {
-    let posts: Post[] = [];
-
-    if (user.role === 'admin' && !searchSubstring) {
-      posts = await Post.findAll({
-        include: this.postAssociations
-      });
+class PostService extends DomainService {
+  protected override readonly roleSettings: IRoleSettings = {
+    admin: {
+      include: [
+        { model: User, as: 'author' }
+      ]
+    },
+    user: {
+      attributes: [
+        'id',
+        'title',
+        'access',
+        'content',
+        'rating',
+        'tags'
+      ]
     }
-    else if (user.role === 'user' && !searchSubstring) {
-      posts = await Post.findAll({
-        where: {
-          authorId: user.id
-        },
-        attributes: this.publicPostData
-      });
-    }
-    else if (user.role === 'admin' && searchSubstring) {
-      posts = await Post.findAll({
-        where: {
-          [Op.or]: [
-            { title: { [Op.like]: `%${searchSubstring}%` } },
-            { content: { [Op.like]: `%${searchSubstring}%` } }
-          ]
-        },
-        include: this.postAssociations
-      });
+  };
 
-      if (posts.length === 0) {
-        throw new NotFound(`Posts by search substring: ${searchSubstring} - are not found`);
-      }
-    }
-    else if (user.role === 'user' && searchSubstring) {
-      posts = await Post.findAll({
-        where: {
-          authorId: user.id,
-          [Op.or]: [
-            { title: { [Op.like]: `%${searchSubstring}%` } },
-            { content: { [Op.like]: `%${searchSubstring}%` } }
-          ]
-        },
-        attributes: this.publicPostData
-      });
-
-      if (posts.length === 0) {
-        throw new NotFound(`Posts by search substring: ${searchSubstring} - are not found`);
+  protected override findOptionsRoleFilter(findOptions: FindOptions, user: IUserPayload): FindOptions {
+    const roleSpecificOptions = this.roleSettings[user.role];
+    if (user.role === 'user') {
+      findOptions.where = {
+        ...findOptions.where,
+        authorId: user.id
       }
     }
 
+    Object.assign(findOptions, roleSpecificOptions);
+    return findOptions;
+  }
+
+  public async getAllUserPosts(findOptions: FindOptions, user?: IUserPayload): Promise<Post[]> {
+    findOptions = user ?
+      this.findOptionsRoleFilter(findOptions, user) :
+      findOptions;
+
+    const posts = await Post.findAll(findOptions);
     return posts;
   }
 
-  public async getUserPostById(user: IUserPayload, postId: string, isMainData: boolean = false): Promise<Post> {
-    let post;
+  public async getPostByUniqueParams(findOptions: FindOptions, user?: IUserPayload): Promise<Post> {
+    findOptions = user ?
+      this.findOptionsRoleFilter(findOptions, user) :
+      findOptions;
 
-    if (user.role === 'admin' && !isMainData) {
-      post = await Post.findOne({
-        where: {
-          id: postId
-        },
-        include: this.postAssociations
-      });
-    }
-    else if (user.role === 'admin' && isMainData) {
-      post = await Post.findOne({
-        where: {
-          id: postId
-        }
-      });
-    }
-    else if (user.role === 'user' && !isMainData) {
-      post = await Post.findOne({
-        where: {
-          id: postId,
-          authorId: user.id
-        },
-        attributes: this.publicPostData
-      });
-    }
-    else if (user.role === 'user' && isMainData) {
-      post = await Post.findOne({
-        where: {
-          id: postId,
-          authorId: user.id
-        }
-      });
-    }
+    const post = await Post.findOne(findOptions);
 
     if (!post) {
-      throw new NotFound(`Post with id: ${postId} - is not found`);
+      throw new NotFound("Post is not found");
     }
 
     return post;
@@ -120,34 +69,21 @@ class PostService {
     });
 
     return (
-      await this.getUserPostById(user, newPost.id)
+      await this.getPostByUniqueParams({
+        where: {
+          id: newPost.id
+        }
+      }, user)
     );
   }
 
-  public async updateUserPostById(user: IUserPayload, postId: string, newPostData: IPostUpdate): Promise<Post> {
-    if (user.role === 'admin') {
-      await Post.update(newPostData, {
-        where: {
-          id: postId
-        }
-      })
-    }
-    else if (user.role === 'user') {
-      await Post.update(newPostData, {
-        where: {
-          id: postId,
-          authorId: user.id
-        }
-      })
-    }
-
-    return (
-      await this.getUserPostById(user, postId)
-    );
+  public async updateUserPost(post: Post, newPostData: IPostUpdate): Promise<Post> {
+    Object.assign(post, newPostData);
+    await post.save();
+    return post;
   }
 
-  public async deleteUserPostById(user: IUserPayload, postId: string): Promise<void> {
-    const post = await this.getUserPostById(user, postId, true);
+  public async deleteUserPost(post: Post): Promise<void> {
     await post.destroy();
   }
 }

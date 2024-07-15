@@ -1,13 +1,14 @@
 import { NextFunction, Request, Response } from 'express';
 import { HttpError } from 'http-errors';
 import DomainController from '../domain.controller.abstract';
-import IUserPayload from './validation/interface/user.payload.interface';
-import UserAuthSchema from './validation/schema/user.auth.schema';
-import UserRegisterSchema from './validation/schema/user.register.schema';
 import MailerTransporter from '../../utils/lib/mailer/mailer.transporter';
 import UserService from '../user/service/user.service';
 import CryptoProvider from '../../utils/lib/crypto/crypto.provider';
 import JWTStrategy from '../../utils/lib/jwt/jwt.strategy';
+import ValidateReqBody from '../validation/decorator/req.body.decorator';
+import IUserPayload from './validation/interface/user.payload.interface';
+import UserAuthSchema from './validation/schema/user.auth.schema';
+import UserRegisterSchema from './validation/schema/user.register.schema';
 
 class AuthController extends DomainController {
   constructor(
@@ -37,17 +38,13 @@ class AuthController extends DomainController {
     return res.status(204).end();
   }
 
+  @ValidateReqBody(UserAuthSchema)
   public async signin(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
-      const userDataAuth = req.body;
-      const { error } = UserAuthSchema.validate(userDataAuth);
-
-      if (error) {
-        return res.status(422).send(`Validation error: ${error.details[0].message}`);
-      }
-
       const user = await this.userService.getUserByUniqueParams({
-        email: req.body.email
+        where: {
+          email: req.body.email
+        }
       });
 
       const userPassword = req.body.password;
@@ -55,6 +52,10 @@ class AuthController extends DomainController {
 
       if (user.dataValues.password !== hashUserPassword) {
         return res.status(401).send("Unauthorized - incorrect email or password");
+      }
+
+      if (!user.isActivated) {
+        return res.status(403).send(`Forbidden - user with email: ${req.body.email} is not activated`);
       }
 
       const userPayload: IUserPayload = {
@@ -69,7 +70,7 @@ class AuthController extends DomainController {
 
       await this.userService.updateUser(user, {
         refreshToken: refreshToken
-      }, false);
+      });
 
       return res.status(200)
         .cookie('access-token', accessToken, {
@@ -100,17 +101,13 @@ class AuthController extends DomainController {
     }
   }
 
+  @ValidateReqBody(UserRegisterSchema)
   public async signup(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const userDataRegister = req.body;
-      const { error } = UserRegisterSchema.validate(userDataRegister);
-
-      if (error) {
-        return res.status(422).send(`Validation error: ${error.details[0].message}`);
-      }
-
       const verifToken = this.cryptoProvider.generateSecureVerificationToken();
       const verifLink = process.env.CUR_URL + `/auth/signup/verifyUserEmail?token=${verifToken}`;
+
       userDataRegister.password = await this.cryptoProvider.hashStringBySHA256(userDataRegister.password);
 
       await this.userService.createUser({
@@ -135,10 +132,14 @@ class AuthController extends DomainController {
   public async logout(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const userId = req.user?.id as string;
-      const user = await this.userService.getUserById(userId, false);
+      const user = await this.userService.getUserByUniqueParams({
+        where: {
+          id: userId
+        }
+      });
       await this.userService.updateUser(user, {
         refreshToken: null
-      }, false);
+      });
 
       if (req.cookies['refresh-token']) {
         res.clearCookie('refresh-token');
@@ -161,7 +162,9 @@ class AuthController extends DomainController {
     try {
       const { token } = req.query;
       const user = await this.userService.getUserByUniqueParams({
-        verifToken: token as string
+        where: {
+          verifToken: token
+        }
       });
 
       if (user.role === 'admin') {
@@ -171,7 +174,7 @@ class AuthController extends DomainController {
         await this.userService.updateUser(user, {
           isActivated: user.isActivated,
           verifToken: verifAdminToken
-        }, false);
+        });
 
         await this.mailerTransporter.sendMailByTransporter({
           to: process.env.ADMIN_EMAIL,
@@ -186,7 +189,7 @@ class AuthController extends DomainController {
         await this.userService.updateUser(user, {
           isActivated: true,
           verifToken: null
-        }, false);
+        });
       }
 
       return res.redirect(process.env.CUR_URL + '/api');
@@ -206,13 +209,15 @@ class AuthController extends DomainController {
     try {
       const { token } = req.query;
       const user = await this.userService.getUserByUniqueParams({
-        verifToken: token as string
+        where: {
+          verifToken: token
+        }
       });
 
       await this.userService.updateUser(user, {
         isActivated: true,
         verifToken: null
-      }, false);
+      });
 
       await this.mailerTransporter.sendMailByTransporter({
         to: user.email,

@@ -1,128 +1,51 @@
-import { Op } from 'sequelize';
-import { NotFound, Forbidden } from 'http-errors';
-import IUserRegister from '../../auth/validation/interface/user.register.interface';
-import IUserUpdate from '../validation/interface/update/user.update.interface';
-import IGetUserParams from '../validation/interface/user.get.params.interface';
+import { FindOptions } from 'sequelize';
+import { NotFound } from 'http-errors';
 import User from '../../../database/models/user/user.model';
 import UserContact from '../../../database/models/user/user.contact.model';
 import Post from '../../../database/models/post/post.model';
+import IRoleSettings from '../../role.settings.interface';
+import IUserRegister from '../../auth/validation/interface/user.register.interface';
+import IUserUpdate from '../validation/interface/update/user.update.interface';
+import DomainService from '../../domain.service.abstract';
 
-class UserService {
-  private readonly userAssociations = [
-    { model: Post, as: 'posts' },
-    { model: UserContact, as: 'contacts' }
-  ];
-
-  private readonly publicUserData = [
-    'name',
-    'email'
-  ];
-
-  private readonly publicParamData = [
-    'verifToken',
-    'refreshToken'
-  ];
-
-  public async getAllUsers(searchSubstring: string): Promise<User[]> {
-    let users = [];
-    if (!searchSubstring) {
-      users = await User.findAll({
-        include: this.userAssociations
-      });
+class UserService extends DomainService {
+  protected override readonly roleSettings: IRoleSettings = {
+    admin: {
+      include: [
+        { model: Post, as: 'posts' },
+        { model: UserContact, as: 'contacts' }
+      ]
+    },
+    user: {
+      attributes: [
+        'name',
+        'email'
+      ]
     }
-    else {
-      users = await User.findAll({
-        where: {
-          [Op.or]: [
-            { name: { [Op.like]: `%${searchSubstring}%` } },
-            { email: { [Op.like]: `%${searchSubstring}%` } }
-          ]
-        },
-        include: this.userAssociations
-      });
+  };
 
-      if (users.length === 0) {
-        throw new NotFound(`Users by search substring: ${searchSubstring} - are not found`);
-      }
-    }
+  protected override findOptionsRoleFilter(findOptions: FindOptions, userRole: 'admin' | 'user'): FindOptions {
+    const roleSpecificOptions = this.roleSettings[userRole];
+    Object.assign(findOptions, roleSpecificOptions);
+    return findOptions;
+  }
 
+  public async getAllUsers(findOptions: FindOptions, userRole?: 'admin' | 'user'): Promise<User[]> {
+    findOptions = userRole ?
+      this.findOptionsRoleFilter(findOptions, userRole) : findOptions;
+
+    const users = await User.findAll(findOptions);
     return users;
   }
 
-  public async getAllNonVerifUsers(): Promise<{ nonActivatedUsers: User[], usersWithVerifToken: User[] }> {
-    const nonActivatedUsers = await User.findAll({
-      where: {
-        isActivated: false
-      }
-    });
+  public async getUserByUniqueParams(findOptions: FindOptions, userRole?: 'admin' | 'user'): Promise<User> {
+    findOptions = userRole ?
+      this.findOptionsRoleFilter(findOptions, userRole) : findOptions;
 
-    const usersWithVerifToken = await User.findAll({
-      where: {
-        verifToken: {
-          [Op.ne]: null
-        }
-      }
-    });
-
-    return {
-      nonActivatedUsers,
-      usersWithVerifToken
-    };
-  }
-
-  public async getUserById(userId: string, includeAssociations = true, isPublicData = false): Promise<User> {
-    let user;
-
-    if (includeAssociations && !isPublicData) {
-      user = await User.findOne({
-        where: {
-          id: userId
-        },
-        include: this.userAssociations
-      });
-    }
-    else if (!includeAssociations && !isPublicData) {
-      user = await User.findOne({
-        where: {
-          id: userId
-        }
-      });
-    }
-    else if (!includeAssociations && isPublicData) {
-      user = await User.findOne({
-        where: {
-          id: userId
-        },
-        attributes: this.publicUserData
-      });
-    }
+    const user = await User.findOne(findOptions);
 
     if (!user) {
-      throw new NotFound(`User with id: ${userId} - is not found`);
-    }
-
-    return user;
-  }
-
-  public async getUserByUniqueParams(userParams: IGetUserParams): Promise<User> {
-    const user = await User.findOne({
-      where: {
-        ...userParams
-      }
-    });
-
-    if (user && !user.isActivated) {
-      const hasPublicParam = Object.keys(userParams).some(
-        param => this.publicParamData.includes(param)
-      );
-
-      if (!hasPublicParam) {
-        throw new Forbidden(`Forbidden - user with params: ${userParams} is not activated`);
-      }
-    }
-
-    if (!user) {
-      throw new NotFound(`User with params: ${userParams} - is not found`);
+      throw new NotFound("User is not found");
     }
 
     return user;
@@ -143,20 +66,20 @@ class UserService {
       await UserContact.bulkCreate(userContactsData);
     }
 
-    return (
-      await this.getUserById(newUser.id)
-    );
+    return newUser;
   }
 
-  public async updateUser(user: User, newUserData: IUserUpdate, userRoleCheck: boolean = true): Promise<User> {
+  public async updateUser(user: User, newUserData: IUserUpdate, considerRole: boolean = false): Promise<User> {
     Object.assign(user, newUserData);
     await user.save();
 
-    if (userRoleCheck) {
+    if (considerRole) {
       return (
-        user.role === 'user' ?
-          await this.getUserById(user.id, false, true) :
-          await this.getUserById(user.id)
+        await this.getUserByUniqueParams({
+          where: {
+            id: user.id
+          }
+        }, user.role as 'admin' | 'user')
       );
     }
 

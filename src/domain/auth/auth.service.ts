@@ -1,3 +1,4 @@
+import { Op } from 'sequelize';
 import cron from 'node-cron';
 import User from '../../database/models/user/user.model';
 import UserService from '../user/service/user.service';
@@ -17,7 +18,21 @@ class AuthService {
 
   public async deleteAllNonVerifData(): Promise<void> {
     try {
-      const { nonActivatedUsers, usersWithVerifToken } = await this.userService.getAllNonVerifUsers();
+      const nonActivatedUsers = await this.userService.getAllUsers({
+        where: {
+          isActivated: false
+        }
+      });
+
+      const usersWithVerifToken = await this.userService.getAllUsers({
+        where: {
+          isActivated: true,
+          verifToken: {
+            [Op.ne]: null
+          }
+        }
+      });
+
       const usersToDelete = this.getUsersToDelete(nonActivatedUsers);
       const usersToUpdate = this.getUsersToDelete(usersWithVerifToken);
 
@@ -28,7 +43,7 @@ class AuthService {
       await Promise.all(usersToUpdate.map(userWithVerifToken =>
         this.userService.updateUser(userWithVerifToken, {
           verifToken: null
-        }, false)
+        })
       ));
     }
     catch (err) {
