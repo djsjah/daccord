@@ -1,4 +1,5 @@
-import { FindOptions } from 'sequelize';
+import { Sequelize } from 'sequelize-typescript';
+import { FindOptions, Op } from 'sequelize';
 import { NotFound } from 'http-errors';
 import Post from '../../database/models/post/post.model';
 import User from '../../database/models/user/user.model';
@@ -40,20 +41,53 @@ class PostService extends DomainService {
     return findOptions;
   }
 
-  public async getAllUserPosts(findOptions: FindOptions, user?: IUserPayload): Promise<Post[]> {
-    findOptions = user ?
-      this.findOptionsRoleFilter(findOptions, user) :
-      findOptions;
+  private findOptionsJoinLiteral(findOptions: FindOptions, literalQuery: string) {
+    findOptions.where = {
+      [Op.and]: [
+        {
+          ...findOptions.where
+        },
+        Sequelize.literal(literalQuery)
+      ]
+    };
 
+    return findOptions
+  }
+
+  private setupFindOptions(
+    findOptions: FindOptions,
+    user: IUserPayload | undefined,
+    literalQuery: string | undefined
+  ) {
+    if (user) {
+      findOptions = this.findOptionsRoleFilter(findOptions, user);
+    }
+
+    if (literalQuery) {
+      findOptions = this.findOptionsJoinLiteral(findOptions, literalQuery);
+    }
+
+    return findOptions;
+  }
+
+  public async getAllUserPosts(
+    findOptions: FindOptions,
+    user?: IUserPayload,
+    literalQuery?: string
+  ): Promise<Post[]>
+  {
+    findOptions = this.setupFindOptions(findOptions, user, literalQuery);
     const posts = await Post.findAll(findOptions);
     return posts;
   }
 
-  public async getPostByUniqueParams(findOptions: FindOptions, user?: IUserPayload): Promise<Post> {
-    findOptions = user ?
-      this.findOptionsRoleFilter(findOptions, user) :
-      findOptions;
-
+  public async getPostByUniqueParams(
+    findOptions: FindOptions,
+    user?: IUserPayload,
+    literalQuery?: string
+  ): Promise<Post>
+  {
+    findOptions = this.setupFindOptions(findOptions, user, literalQuery);
     const post = await Post.findOne(findOptions);
 
     if (!post) {

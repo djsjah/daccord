@@ -1,4 +1,3 @@
-import { Op } from 'sequelize';
 import { Request, Response, NextFunction } from 'express';
 import PostService from './post.service';
 import ValidateReqParam from '../validation/decorator/req.param.decorator';
@@ -7,31 +6,47 @@ import IUserPayload from '../auth/validation/interface/user.payload.interface';
 import IdSchema from '../validation/schema/param.schema';
 import PostCreateSchema from './validation/schema/post.create.schema';
 import PostUpdateSchema from './validation/schema/post.update.schema';
+import { Sequelize } from 'sequelize-typescript';
 
 class PostController {
+  private readonly searchParamWeightSettings = {
+    title: 'A',
+    content: 'B'
+  };
+
   constructor(private readonly postService: PostService) { }
 
   public async getAllUserPosts(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = req.user as IUserPayload;
-      const searchSubstring = req.query.search;
+      const searchParam = req.query.searchParam;
+
+      let searchSubstring = req.query.searchSubstring;
       let posts = [];
 
       if (!searchSubstring) {
         posts = await this.postService.getAllUserPosts({}, user);
       }
       else {
-        posts = await this.postService.getAllUserPosts({
-          where: {
-            [Op.or]: [
-              { title: { [Op.like]: `%${searchSubstring}%` } },
-              { content: { [Op.like]: `%${searchSubstring}%` } }
+        searchSubstring = (searchParam === 'title' || searchParam === 'content') ?
+          `${searchSubstring}:${this.searchParamWeightSettings[searchParam]}` :
+          searchSubstring;
+
+        posts = await this.postService.getAllUserPosts(
+          {
+            order: [
+              [
+                Sequelize.literal(`ts_rank(text_tsv, to_tsquery('russian', '${searchSubstring}'))`),
+                'DESC'
+              ]
             ]
-          }
-        }, user);
+          },
+          user,
+          `text_tsv @@ to_tsquery('russian', '${searchSubstring}')`
+        );
       }
 
-      return res.status(200).json({status: 200, data: posts, message: "List of all posts" });
+      return res.status(200).json({ status: 200, data: posts, message: "List of all posts" });
     }
     catch (err) {
       next(err);

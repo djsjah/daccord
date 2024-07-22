@@ -468,12 +468,21 @@ paths:
         - BearerAuth: []
       parameters:
         - in: query
-          name: search
+          name: searchParam
+          schema:
+            type: string
+            enum:
+              - title
+              - content
+            required: false
+          description: Search parameter that sets among whom the search substring will be searched - titles or contents
+        - in: query
+          name: searchSubstring
           schema:
             type: string
             default: ''
-          required: false
-          description: Search string that matches post titles or text
+            required: false
+          description: Search substring that is searched among titles or contents
       responses:
         '200':
           description: List of all user posts
