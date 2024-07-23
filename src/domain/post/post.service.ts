@@ -10,6 +10,11 @@ import IPostCreate from './validation/interface/post.create.interface';
 import IPostUpdate from './validation/interface/post.update.interface';
 
 class PostService extends DomainService {
+  private readonly ftsParamWeightSettings = {
+    title: 'A',
+    content: 'B'
+  };
+
   protected override readonly roleSettings: IRoleSettings = {
     admin: {
       include: [
@@ -68,6 +73,15 @@ class PostService extends DomainService {
     }
 
     return findOptions;
+  }
+
+  public setupFTSParams(searchParam: string, searchString: string): string {
+    if (searchParam === 'title' || searchParam === 'content') {
+      const searchWeight = this.ftsParamWeightSettings[searchParam];
+      return searchString.split(/\s+/).map(word => `${word}:${searchWeight}`).join(" & ");
+    }
+
+    return searchString.split(/\s+/).join(' & ');
   }
 
   public async getAllUserPosts(

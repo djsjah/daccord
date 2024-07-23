@@ -9,40 +9,32 @@ import PostUpdateSchema from './validation/schema/post.update.schema';
 import { Sequelize } from 'sequelize-typescript';
 
 class PostController {
-  private readonly searchParamWeightSettings = {
-    title: 'A',
-    content: 'B'
-  };
-
   constructor(private readonly postService: PostService) { }
 
   public async getAllUserPosts(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = req.user as IUserPayload;
-      const searchParam = req.query.searchParam;
+      const searchParam = req.query.searchParam as string;
 
-      let searchSubstring = req.query.searchSubstring;
+      let searchString = req.query.searchString as string;
       let posts = [];
 
-      if (!searchSubstring) {
+      if (!searchString) {
         posts = await this.postService.getAllUserPosts({}, user);
       }
       else {
-        searchSubstring = (searchParam === 'title' || searchParam === 'content') ?
-          `${searchSubstring}:${this.searchParamWeightSettings[searchParam]}` :
-          searchSubstring;
-
+        searchString = this.postService.setupFTSParams(searchParam, searchString);
         posts = await this.postService.getAllUserPosts(
           {
             order: [
               [
-                Sequelize.literal(`ts_rank(text_tsv, to_tsquery('russian', '${searchSubstring}'))`),
+                Sequelize.literal(`ts_rank(text_tsv, to_tsquery('russian', '${searchString}'))`),
                 'DESC'
               ]
             ]
           },
           user,
-          `text_tsv @@ to_tsquery('russian', '${searchSubstring}')`
+          `text_tsv @@ to_tsquery('russian', '${searchString}')`
         );
       }
 
