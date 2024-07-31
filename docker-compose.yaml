@@ -1,0 +1,21 @@
+version: '3.6'
+services:
+  elasticsearch:
+    container_name: elasticsearch_container
+    image: elasticsearch:8.14.1
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    logging:
+      driver: none
+    ports:
+      - 9200:9200
+      - 9300:9300
+    networks:
+      - esnet
+volumes:
+  esdata:
+networks:
+  esnet:

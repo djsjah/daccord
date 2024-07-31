@@ -1,19 +1,19 @@
 import { Sequelize } from 'sequelize-typescript';
-import { FindOptions, Op } from 'sequelize';
 import { NotFound } from 'http-errors';
+import { FindOptions, Op } from 'sequelize';
 import Post from '../../database/models/post/post.model';
 import User from '../../database/models/user/user.model';
 import DomainService from '../domain.service.abstract';
+import ElasticSearchProvider from '../../utils/lib/elasticsearch/elasticsearch.provider';
 import IRoleSettings from '../role.settings.interface';
+import IPhraseSearch from './validation/interface/post.search.interface';
 import IUserPayload from '../auth/validation/interface/user.payload.interface';
 import IPostCreate from './validation/interface/post.create.interface';
 import IPostUpdate from './validation/interface/post.update.interface';
 
 class PostService extends DomainService {
-  private readonly ftsParamWeightSettings = {
-    title: 'A',
-    content: 'B'
-  };
+  private readonly esIndex: string = 'post_idx';
+  private readonly esProvider: ElasticSearchProvider;
 
   protected override readonly roleSettings: IRoleSettings = {
     admin: {
@@ -32,6 +32,11 @@ class PostService extends DomainService {
       ]
     }
   };
+
+  constructor(esProvider: ElasticSearchProvider) {
+    super();
+    this.esProvider = esProvider;
+  }
 
   protected override findOptionsRoleFilter(findOptions: FindOptions, user: IUserPayload): FindOptions {
     const roleSpecificOptions = this.roleSettings[user.role];
@@ -75,21 +80,55 @@ class PostService extends DomainService {
     return findOptions;
   }
 
-  public setupFTSParams(searchParam: string, searchString: string): string {
-    if (searchParam === 'title' || searchParam === 'content') {
-      const searchWeight = this.ftsParamWeightSettings[searchParam];
-      return searchString.split(/\s+/).map(word => `${word}:${searchWeight}`).join(" & ");
-    }
+  public async phraseSearch(
+    user: IUserPayload,
+    searchParam: 'title' | 'content',
+    searchString: string
+  ): Promise<unknown[]>
+  {
+    const matchPhrase = {
+      [searchParam]: {
+        query: searchString,
+        slop: 1
+      }
+    };
 
-    return searchString.split(/\s+/).join(' & ');
+    const phraseSearchSettings: IPhraseSearch = {
+      admin: {
+        index: this.esIndex,
+        query: {
+          match_phrase: matchPhrase
+        }
+      },
+      user: {
+        index: this.esIndex,
+        query: {
+          bool: {
+            must: [
+              {
+                match_phrase: matchPhrase
+              },
+              {
+                term: {
+                  authorId: user.id
+                }
+              }
+            ]
+          }
+        },
+        _source_excludes: [ 'authorId' ]
+      }
+    };
+
+    const searchResult = await this.esProvider.searchByRequest(phraseSearchSettings[user.role]);
+    return searchResult.hits.hits.map(hit => hit._source);
   }
 
   public async getAllUserPosts(
     findOptions: FindOptions,
     user?: IUserPayload,
     literalQuery?: string
-  ): Promise<Post[]>
-  {
+  ): Promise<Post[]> {
     findOptions = this.setupFindOptions(findOptions, user, literalQuery);
     const posts = await Post.findAll(findOptions);
     return posts;
@@ -99,8 +138,7 @@ class PostService extends DomainService {
     findOptions: FindOptions,
     user?: IUserPayload,
     literalQuery?: string
-  ): Promise<Post>
-  {
+  ): Promise<Post> {
     findOptions = this.setupFindOptions(findOptions, user, literalQuery);
     const post = await Post.findOne(findOptions);
 
@@ -116,6 +154,13 @@ class PostService extends DomainService {
       ...postDataCreate
     });
 
+    await this.esProvider.indexDocument(this.esIndex, newPost.id, {
+      id: newPost.id,
+      title: newPost.title,
+      content: newPost.content,
+      authorId: newPost.authorId
+    });
+
     return (
       await this.getPostByUniqueParams({
         where: {
@@ -126,13 +171,30 @@ class PostService extends DomainService {
   }
 
   public async updateUserPost(post: Post, newPostData: IPostUpdate): Promise<Post> {
+    if (newPostData.title) {
+      await this.esProvider.updateDocument(this.esIndex, post.id, {
+        title: newPostData.title
+      });
+    }
+
+    if (newPostData.content) {
+      await this.esProvider.updateDocument(this.esIndex, post.id, {
+        content: newPostData.content
+      });
+    }
+
     Object.assign(post, newPostData);
     await post.save();
     return post;
   }
 
   public async deleteUserPost(post: Post): Promise<void> {
+    await this.esProvider.deleteDocument(this.esIndex, post.id);
     await post.destroy();
+  }
+
+  public getEsIndex(): string {
+    return this.esIndex;
   }
 }
 export default PostService;

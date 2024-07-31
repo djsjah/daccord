@@ -9,7 +9,7 @@ import AppController from './app.controller';
 import MailerModule from './utils/lib/mailer/mailer.module';
 import CryptoModule from './utils/lib/crypto/crypto.module';
 import JWTModule from './utils/lib/jwt/jwt.module';
-import NotificationModule from './utils/lib/notification/notification.module';
+import ElasticSearchModule from './utils/lib/elasticsearch/elasticsearch.module';
 import UserModule from './domain/user/user.module';
 import AuthModule from './domain/auth/auth.module';
 import PostModule from './domain/post/post.module';
@@ -59,8 +59,8 @@ class AppModule {
       }
     }));
     dependencyContainer.registerInstance('cryptoModule', new CryptoModule());
-    dependencyContainer.registerInstance('notifModule', new NotificationModule());
     dependencyContainer.registerInstance('jwtModule', new JWTModule());
+    dependencyContainer.registerInstance('esModule', new ElasticSearchModule());
     dependencyContainer.registerInstance('userModule', new UserModule());
     dependencyContainer.registerInstance('authModule', new AuthModule());
     dependencyContainer.registerInstance('postModule', new PostModule());

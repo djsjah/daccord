@@ -26,6 +26,9 @@ class SequelizeService implements ISequelizeService {
     try {
       await this.sequelize.sync();
       await this.umzug.up();
+      await this.umzug.down({
+        to: '20240719151942-add_text_tsv_column_to_post_table.js'
+      });
     }
     catch (err) {
       console.log(err);

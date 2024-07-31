@@ -68,12 +68,6 @@ class Post extends Model {
   })
   tags?: string[] | null | undefined;
 
-  @Column({
-    type: DataType.TSVECTOR,
-    allowNull: true
-  })
-  text_tsv?: string | null | undefined;
-
   @ForeignKey(() => User)
   @Column({
     type: DataType.UUID

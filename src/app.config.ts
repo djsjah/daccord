@@ -7,6 +7,8 @@ import UserRouter from './domain/user/routes/user.routes';
 import UserContactRouter from './domain/user/routes/user.contact.routes';
 import PostRouter from './domain/post/post.routes';
 import SubscriptionRouter from './domain/subscription/subscription.routes';
+import PostService from './domain/post/post.service';
+import ElasticSearchProvider from './utils/lib/elasticsearch/elasticsearch.provider';
 
 declare module 'express' {
   interface Request {
@@ -36,5 +38,57 @@ export function useRoutes(app: express.Application): void {
     '/api/subscriptions',
     dependencyContainer.getInstance<SubscriptionRouter>('subscrRouter').getRouter()
   );
+}
+
+export async function setupElasticSearch() {
+  const postService = dependencyContainer.getInstance<PostService>('postService');
+  const esProvider = dependencyContainer.getInstance<ElasticSearchProvider>('esProvider');
+
+  const postIndex = postService.getEsIndex();
+  const isPostIndexExist = await esProvider.isIndexExist(postIndex);
+
+  if (!isPostIndexExist) {
+    await esProvider.createIndex({
+      index: postIndex,
+      mappings: {
+        properties: {
+          id: {
+            type: 'keyword'
+          },
+          title: {
+            type: 'text',
+            analyzer: 'russian'
+          },
+          content: {
+            type: 'text',
+            analyzer: 'russian'
+          },
+          authorId: {
+            type: 'keyword'
+          }
+        }
+      }
+    });
+
+    const docs: object[] = [];
+    const posts = await postService.getAllUserPosts({});
+
+    posts.forEach(post => {
+      docs.push({
+        index: {
+          _index: postIndex,
+          _id: post.id
+        }
+      });
+      docs.push({
+        id: post.id,
+        title: post.title,
+        content: post.content,
+        authorId: post.authorId
+      });
+    });
+
+    await esProvider.populateIndex(docs);
+  }
 }
 

@@ -4,38 +4,29 @@ import ValidateReqParam from '../validation/decorator/req.param.decorator';
 import ValidateReqBody from '../validation/decorator/req.body.decorator';
 import IUserPayload from '../auth/validation/interface/user.payload.interface';
 import IdSchema from '../validation/schema/param.schema';
+import PostSearchParamSchema from './validation/schema/post.search.schema';
 import PostCreateSchema from './validation/schema/post.create.schema';
 import PostUpdateSchema from './validation/schema/post.update.schema';
-import { Sequelize } from 'sequelize-typescript';
 
 class PostController {
-  constructor(private readonly postService: PostService) { }
+  constructor(
+    private readonly postService: PostService
+  ) { }
 
+  @ValidateReqParam('searchParam', PostSearchParamSchema)
   public async getAllUserPosts(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = req.user as IUserPayload;
-      const searchParam = req.query.searchParam as string;
+      const searchParam = (req.query.searchParam as 'title' | 'content') || 'title';
+      const searchString = req.query.searchString as string;
 
-      let searchString = req.query.searchString as string;
       let posts = [];
 
       if (!searchString) {
         posts = await this.postService.getAllUserPosts({}, user);
       }
       else {
-        searchString = this.postService.setupFTSParams(searchParam, searchString);
-        posts = await this.postService.getAllUserPosts(
-          {
-            order: [
-              [
-                Sequelize.literal(`ts_rank(text_tsv, to_tsquery('russian', '${searchString}'))`),
-                'DESC'
-              ]
-            ]
-          },
-          user,
-          `text_tsv @@ to_tsquery('russian', '${searchString}')`
-        );
+        posts = await this.postService.phraseSearch(user, searchParam, searchString);
       }
 
       return res.status(200).json({ status: 200, data: posts, message: "List of all posts" });
