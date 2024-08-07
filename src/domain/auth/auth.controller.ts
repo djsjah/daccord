@@ -5,7 +5,7 @@ import MailerTransporter from '../../utils/lib/mailer/mailer.transporter';
 import UserService from '../user/service/user.service';
 import CryptoProvider from '../../utils/lib/crypto/crypto.provider';
 import JWTStrategy from '../../utils/lib/jwt/jwt.strategy';
-import ValidateReqBody from '../validation/decorator/req.body.decorator';
+import JoiRequestValidation from '../validation/joi/decorator/joi.validation.decorator';
 import IUserPayload from './validation/interface/user.payload.interface';
 import UserAuthSchema from './validation/schema/user.auth.schema';
 import UserRegisterSchema from './validation/schema/user.register.schema';
@@ -38,7 +38,9 @@ class AuthController extends DomainController {
     return res.status(204).end();
   }
 
-  @ValidateReqBody(UserAuthSchema)
+  @JoiRequestValidation({
+    type: 'body'
+  }, UserAuthSchema)
   public async signin(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = await this.userService.getUserByUniqueParams({
@@ -101,7 +103,9 @@ class AuthController extends DomainController {
     }
   }
 
-  @ValidateReqBody(UserRegisterSchema)
+  @JoiRequestValidation({
+    type: 'body'
+  }, UserRegisterSchema)
   public async signup(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const userDataRegister = req.body;

@@ -1,10 +1,9 @@
 import { Op } from 'sequelize';
 import { Request, Response, NextFunction } from 'express';
 import SubscriptionService from './subscription.service';
-import ValidateReqParam from '../validation/decorator/req.param.decorator';
-import ValidateReqBody from '../validation/decorator/req.body.decorator';
+import JoiRequestValidation from '../validation/joi/decorator/joi.validation.decorator';
 import IUserPayload from '../auth/validation/interface/user.payload.interface';
-import IdSchema from '../validation/schema/param.schema';
+import IdSchema from '../validation/joi/schema/joi.params.schema';
 import SubscriptionRoleSchema from './validation/schema/subscription.param.schema';
 import SubscriptionCreateSchema from './validation/schema/subscription.create.schema';
 import SubscriptionUpdateSchema from './validation/schema/subscription.update.schema';
@@ -56,8 +55,14 @@ class SubscriptionController {
     }
   }
 
-  @ValidateReqParam('subscriptionRole', SubscriptionRoleSchema)
-  @ValidateReqParam('subscriptionId', IdSchema)
+  @JoiRequestValidation({
+    type: 'params',
+    name: 'subscriptionRole'
+  }, SubscriptionRoleSchema)
+  @JoiRequestValidation({
+    type: 'params',
+    name: 'subscriptionId'
+  }, IdSchema)
   public async getSubscriptionById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = req.user as IUserPayload;
@@ -79,7 +84,9 @@ class SubscriptionController {
     }
   }
 
-  @ValidateReqBody(SubscriptionCreateSchema)
+  @JoiRequestValidation({
+    type: 'body'
+  }, SubscriptionCreateSchema)
   public async createSubscriptionAsSubscriber(
     req: Request,
     res: Response,
@@ -109,8 +116,13 @@ class SubscriptionController {
     }
   }
 
-  @ValidateReqParam('subscriptionId', IdSchema)
-  @ValidateReqBody(SubscriptionUpdateSchema)
+  @JoiRequestValidation({
+    type: 'params',
+    name: 'subscriptionId'
+  }, IdSchema)
+  @JoiRequestValidation({
+    type: 'body'
+  }, SubscriptionUpdateSchema)
   public async updateSubscriptionById(
     req: Request,
     res: Response,
@@ -140,8 +152,14 @@ class SubscriptionController {
     }
   }
 
-  @ValidateReqParam('subscriptionId', IdSchema)
-  @ValidateReqParam('subscriptionRole', SubscriptionRoleSchema)
+  @JoiRequestValidation({
+    type: 'params',
+    name: 'subscriptionId'
+  }, IdSchema)
+  @JoiRequestValidation({
+    type: 'params',
+    name: 'subscriptionRole'
+  }, SubscriptionRoleSchema)
   public async deleteSubscriptionById(
     req: Request,
     res: Response,

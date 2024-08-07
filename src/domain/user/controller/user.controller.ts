@@ -2,9 +2,8 @@ import { Op } from 'sequelize';
 import { Request, Response, NextFunction } from 'express';
 import UserService from '../service/user.service';
 import CryptoProvider from '../../../utils/lib/crypto/crypto.provider';
-import ValidateReqParam from '../../validation/decorator/req.param.decorator';
-import ValidateReqBody from '../../validation/decorator/req.body.decorator';
-import IdSchema from '../../validation/schema/param.schema';
+import JoiRequestValidation from '../../validation/joi/decorator/joi.validation.decorator';
+import IdSchema from '../../validation/joi/schema/joi.params.schema';
 import UserPrivateUpdateSchema from '../validation/schema/update/private/user.private.update.schema';
 
 class UserController {
@@ -39,7 +38,10 @@ class UserController {
     }
   }
 
-  @ValidateReqParam('userId', IdSchema)
+  @JoiRequestValidation({
+    type: 'params',
+    name: 'userId'
+  }, IdSchema)
   public async getUserById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = await this.userService.getUserByUniqueParams({
@@ -55,8 +57,13 @@ class UserController {
     }
   }
 
-  @ValidateReqParam('userId', IdSchema)
-  @ValidateReqBody(UserPrivateUpdateSchema)
+  @JoiRequestValidation({
+    type: 'params',
+    name: 'userId'
+  }, IdSchema)
+  @JoiRequestValidation({
+    type: 'body'
+  }, UserPrivateUpdateSchema)
   public async updateUserById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const newUserData = req.body;
@@ -82,7 +89,10 @@ class UserController {
     }
   }
 
-  @ValidateReqParam('userId', IdSchema)
+  @JoiRequestValidation({
+    type: 'params',
+    name: 'userId'
+  }, IdSchema)
   public async deleteUserById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = await this.userService.getUserByUniqueParams({

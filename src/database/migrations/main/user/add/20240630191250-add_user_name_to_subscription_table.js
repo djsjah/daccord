@@ -1,4 +1,4 @@
-const { Sequelize } = require('sequelize')
+const { Sequelize } = require('sequelize');
 
 async function up({ context: queryInterface }) {
   const tableInfo = await queryInterface.describeTable('Subscriptions');

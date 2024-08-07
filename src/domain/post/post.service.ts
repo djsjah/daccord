@@ -1,12 +1,12 @@
 import { Sequelize } from 'sequelize-typescript';
 import { NotFound } from 'http-errors';
 import { FindOptions, Op } from 'sequelize';
-import Post from '../../database/models/post/post.model';
-import User from '../../database/models/user/user.model';
+import Post from '../../database/sequelize/models/post/post.model';
+import User from '../../database/sequelize/models/user/user.model';
 import DomainService from '../domain.service.abstract';
-import ElasticSearchProvider from '../../utils/lib/elasticsearch/elasticsearch.provider';
+import ElasticSearchProvider from '../../database/elasticsearch/elasticsearch.provider';
 import IRoleSettings from '../role.settings.interface';
-import IPhraseSearch from './validation/interface/post.search.interface';
+import IPostSearch from './validation/interface/post.search.interface';
 import IUserPayload from '../auth/validation/interface/user.payload.interface';
 import IPostCreate from './validation/interface/post.create.interface';
 import IPostUpdate from './validation/interface/post.update.interface';
@@ -80,12 +80,55 @@ class PostService extends DomainService {
     return findOptions;
   }
 
+  public async wordSearch(
+    user: IUserPayload,
+    searchParam: 'title' | 'content',
+    searchString: string
+  ): Promise<unknown[]> {
+    const queryMust = searchString.split(' ').map(word => ({
+      match: {
+        [searchParam]: word
+      }
+    }));
+
+    const wordSearchSettings: IPostSearch = {
+      admin: {
+        index: this.esIndex,
+        query: {
+          bool: {
+            must: [
+              ...queryMust
+            ]
+          }
+        }
+      },
+      user: {
+        index: this.esIndex,
+        query: {
+          bool: {
+            must: [
+              ...queryMust,
+              {
+                term: {
+                  authorId: user.id
+                }
+              }
+            ]
+          }
+        },
+        _source_excludes: ['authorId']
+      }
+    };
+
+    const searchResult = await this.esProvider.searchByRequest(wordSearchSettings[user.role]);
+    return searchResult.hits.hits.map(hit => hit._source);
+  }
+
   public async phraseSearch(
     user: IUserPayload,
     searchParam: 'title' | 'content',
     searchString: string
-  ): Promise<unknown[]>
-  {
+  ): Promise<unknown[]> {
     const matchPhrase = {
       [searchParam]: {
         query: searchString,
@@ -93,7 +136,7 @@ class PostService extends DomainService {
       }
     };
 
-    const phraseSearchSettings: IPhraseSearch = {
+    const phraseSearchSettings: IPostSearch = {
       admin: {
         index: this.esIndex,
         query: {
@@ -116,7 +159,7 @@ class PostService extends DomainService {
             ]
           }
         },
-        _source_excludes: [ 'authorId' ]
+        _source_excludes: ['authorId']
       }
     };
 

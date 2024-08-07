@@ -1,6 +1,6 @@
 import { Op } from 'sequelize';
 import cron from 'node-cron';
-import User from '../../database/models/user/user.model';
+import User from '../../database/sequelize/models/user/user.model';
 import UserService from '../user/service/user.service';
 
 class AuthService {

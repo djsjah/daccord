@@ -1,32 +1,79 @@
 import { Request, Response, NextFunction } from 'express';
+import { PostFiltersSchema, PostSearchSchema } from './validation/schema/post.search.schema';
+import {
+  IPostFilters,
+  IPostFiltersSettings,
+  ISearchType,
+  ISearchMethod
+} from './validation/interface/post.filters.interface';
 import PostService from './post.service';
-import ValidateReqParam from '../validation/decorator/req.param.decorator';
-import ValidateReqBody from '../validation/decorator/req.body.decorator';
+import JoiRequestValidation from '../validation/joi/decorator/joi.validation.decorator';
 import IUserPayload from '../auth/validation/interface/user.payload.interface';
-import IdSchema from '../validation/schema/param.schema';
-import PostSearchParamSchema from './validation/schema/post.search.schema';
+import IdSchema from '../validation/joi/schema/joi.params.schema';
 import PostCreateSchema from './validation/schema/post.create.schema';
 import PostUpdateSchema from './validation/schema/post.update.schema';
+import joiValidation from '../validation/joi/joi.validation';
 
 class PostController {
+  private readonly postFiltersSettings: IPostFiltersSettings = {
+    search: {
+      params: ['title', 'content'],
+      methods: [
+        {
+          name: 'wordSearch',
+          method: (
+            user: IUserPayload,
+            searchParam: 'title' | 'content',
+            searchString: string
+          ) => this.postService.wordSearch(user, searchParam, searchString)
+        },
+        {
+          name: 'phraseSearch',
+          method: (
+            user: IUserPayload,
+            searchParam: 'title' | 'content',
+            searchString: string
+          ) => this.postService.phraseSearch(user, searchParam, searchString)
+        }
+      ]
+    }
+  };
+
   constructor(
     private readonly postService: PostService
   ) { }
 
-  @ValidateReqParam('searchParam', PostSearchParamSchema)
+  @JoiRequestValidation({
+    type: 'query',
+    name: 'filters'
+  }, PostFiltersSchema)
   public async getAllUserPosts(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = req.user as IUserPayload;
-      const searchParam = (req.query.searchParam as 'title' | 'content') || 'title';
-      const searchString = req.query.searchString as string;
-
+      const filters = req.query.filters as IPostFilters;
       let posts = [];
 
-      if (!searchString) {
+      if (!filters) {
         posts = await this.postService.getAllUserPosts({}, user);
       }
       else {
-        posts = await this.postService.phraseSearch(user, searchParam, searchString);
+        const searchParam = this.postFiltersSettings.search.params.find(
+          param => param in filters
+        ) as ('title' | 'content');
+
+        const searchParamBody: ISearchType = JSON.parse(filters[searchParam] as string);
+        const validError = joiValidation(searchParamBody, PostSearchSchema);
+
+        if (validError) {
+          return res.status(422).send(validError);
+        }
+
+        const searchMethod = this.postFiltersSettings.search.methods.find(
+          param => param.name in searchParamBody
+        ) as ISearchMethod;
+
+        const searchString = searchParamBody[searchMethod.name] as string;
+        posts = await searchMethod.method(user, searchParam, searchString);
       }
 
       return res.status(200).json({ status: 200, data: posts, message: "List of all posts" });
@@ -36,7 +83,10 @@ class PostController {
     }
   }
 
-  @ValidateReqParam('postId', IdSchema)
+  @JoiRequestValidation({
+    type: 'params',
+    name: 'postId'
+  }, IdSchema)
   public async getUserPostById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = req.user as IUserPayload;
@@ -57,7 +107,9 @@ class PostController {
     }
   }
 
-  @ValidateReqBody(PostCreateSchema)
+  @JoiRequestValidation({
+    type: 'body'
+  }, PostCreateSchema)
   public async createUserPost(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = req.user as IUserPayload;
@@ -77,8 +129,13 @@ class PostController {
     }
   }
 
-  @ValidateReqParam('postId', IdSchema)
-  @ValidateReqBody(PostUpdateSchema)
+  @JoiRequestValidation({
+    type: 'params',
+    name: 'postId'
+  }, IdSchema)
+  @JoiRequestValidation({
+    type: 'body'
+  }, PostUpdateSchema)
   public async updateUserPostById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = req.user as IUserPayload;
@@ -96,7 +153,10 @@ class PostController {
     }
   }
 
-  @ValidateReqParam('postId', IdSchema)
+  @JoiRequestValidation({
+    type: 'params',
+    name: 'postId'
+  }, IdSchema)
   public async deleteUserPostById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = req.user as IUserPayload;

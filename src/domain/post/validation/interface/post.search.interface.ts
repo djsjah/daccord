@@ -1,7 +1,7 @@
 import { SearchRequest } from '@elastic/elasticsearch/lib/api/types';
 
-interface IPhraseSearch {
+interface IPostSearch {
   admin: SearchRequest;
   user: SearchRequest;
 };
-export default IPhraseSearch;
+export default IPostSearch;

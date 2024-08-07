@@ -1,6 +1,6 @@
 import { FindOptions } from 'sequelize';
 import { NotFound } from 'http-errors';
-import Subscription from '../../database/models/subscription/subscription.model';
+import Subscription from '../../database/sequelize/models/subscription/subscription.model';
 import DomainService from '../domain.service.abstract';
 import UserService from '../user/service/user.service';
 import IRoleSettings from '../role.settings.interface';

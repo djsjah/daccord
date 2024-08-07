@@ -1,4 +1,4 @@
-const { Sequelize } = require('sequelize')
+const { Sequelize } = require('sequelize');
 
 async function up({ context: queryInterface }) {
   const subscrForeignKeys = await queryInterface.getForeignKeyReferencesForTable('Subscriptions');
@@ -29,17 +29,4 @@ async function up({ context: queryInterface }) {
   }
 }
 
-async function down({ context: queryInterface }) {
-  await queryInterface.changeColumn('Subscriptions', 'subscriberId', {
-    type: Sequelize.UUID,
-    references: {
-      model: null,
-      key: null,
-    },
-    onUpdate: null,
-    onDelete: null,
-    allowNull: true,
-  });
-}
-
-module.exports = { up, down }
+module.exports = { up }

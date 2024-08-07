@@ -1,7 +1,7 @@
 import { FindOptions } from 'sequelize';
 import { NotFound } from 'http-errors';
-import User from '../../../database/models/user/user.model';
-import UserContact from '../../../database/models/user/user.contact.model';
+import User from '../../../database/sequelize/models/user/user.model';
+import UserContact from '../../../database/sequelize/models/user/user.contact.model';
 import DomainService from '../../domain.service.abstract';
 import IRoleSettings from '../../role.settings.interface';
 import IUserPayload from '../../auth/validation/interface/user.payload.interface';

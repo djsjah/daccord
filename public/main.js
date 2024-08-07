@@ -20,7 +20,6 @@ async function main() {
     console.log("\nДанные ответа (запрос - http://localhost:5000/auth): ", authData);
   }
   catch (err) {
-
     console.log(err);
   }
 

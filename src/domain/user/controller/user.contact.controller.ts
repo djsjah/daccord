@@ -1,10 +1,9 @@
 import { Op } from 'sequelize';
 import { NextFunction, Request, Response } from 'express';
 import UserContactService from '../service/user.contact.service';
-import ValidateReqParam from '../../validation/decorator/req.param.decorator';
-import ValidateReqBody from '../../validation/decorator/req.body.decorator';
+import JoiRequestValidation from '../../validation/joi/decorator/joi.validation.decorator';
 import IUserPayload from '../../auth/validation/interface/user.payload.interface';
-import IdSchema from '../../validation/schema/param.schema';
+import IdSchema from '../../validation/joi/schema/joi.params.schema';
 import UserContactCreateSchema from '../validation/schema/user.contact.create.schema';
 import UserContactUpdateSchema from '../validation/schema/update/user.contact.update.schema';
 
@@ -46,7 +45,10 @@ class UserContactController {
     }
   }
 
-  @ValidateReqParam('userContactId', IdSchema)
+  @JoiRequestValidation({
+    type: 'params',
+    name: 'userContactId'
+  }, IdSchema)
   public async getUserContactById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = req.user as IUserPayload;
@@ -67,7 +69,9 @@ class UserContactController {
     }
   }
 
-  @ValidateReqBody(UserContactCreateSchema)
+  @JoiRequestValidation({
+    type: 'body'
+  }, UserContactCreateSchema)
   public async createUserContact(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = req.user as IUserPayload;
@@ -85,8 +89,13 @@ class UserContactController {
     }
   }
 
-  @ValidateReqParam('userContactId', IdSchema)
-  @ValidateReqBody(UserContactUpdateSchema)
+  @JoiRequestValidation({
+    type: 'params',
+    name: 'userContactId'
+  }, IdSchema)
+  @JoiRequestValidation({
+    type: 'body'
+  }, UserContactUpdateSchema)
   public async updateUserContactById(
     req: Request,
     res: Response,
@@ -116,7 +125,10 @@ class UserContactController {
     }
   }
 
-  @ValidateReqParam('userContactId', IdSchema)
+  @JoiRequestValidation({
+    type: 'params',
+    name: 'userContactId'
+  }, IdSchema)
   public async deleteUserContactById(
     req: Request,
     res: Response,

@@ -1,8 +1,7 @@
 import {
   appConfig,
   useRoutes,
-  setupCurURL,
-  setupElasticSearch
+  setupCurURL
 } from './app.config';
 import express from 'express';
 import path from 'path';
@@ -21,9 +20,7 @@ async function bootstrap() {
 
   const app = express();
   const { port } = appConfig();
-
   setupCurURL(port);
-  await setupElasticSearch();
 
   const authService = dependencyContainer.getInstance<AuthService>('authService');
   await authService.deleteAllNonVerifData();

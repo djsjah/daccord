@@ -1,4 +1,4 @@
-import dependencyContainer from '../dependencyInjection/dependency.container';
+import dependencyContainer from '../../utils/lib/dependencyInjection/dependency.container';
 import ElasticSearchProvider from './elasticsearch.provider';
 
 class ElasticSearchModule {

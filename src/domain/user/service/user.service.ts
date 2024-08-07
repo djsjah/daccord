@@ -1,8 +1,8 @@
 import { FindOptions } from 'sequelize';
 import { NotFound } from 'http-errors';
-import User from '../../../database/models/user/user.model';
-import UserContact from '../../../database/models/user/user.contact.model';
-import Post from '../../../database/models/post/post.model';
+import User from '../../../database/sequelize/models/user/user.model';
+import UserContact from '../../../database/sequelize/models/user/user.contact.model';
+import Post from '../../../database/sequelize/models/post/post.model';
 import IRoleSettings from '../../role.settings.interface';
 import IUserRegister from '../../auth/validation/interface/user.register.interface';
 import IUserUpdate from '../validation/interface/update/user.update.interface';

@@ -3,7 +3,7 @@ import dependencyContainer from '../../utils/lib/dependencyInjection/dependency.
 import ISequelizeService from './service/sequelize.service.interface';
 import ISequelizeConfig from './sequelize.config.interface';
 import SequelizeService from './service/sequelize.service';
-import IDialectService from '../dialect/dialect.service.interface';
+import IDialectService from './dialect/dialect.service.interface';
 
 class SequelizeModule {
   private seqService: ISequelizeService;

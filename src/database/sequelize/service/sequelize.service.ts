@@ -16,7 +16,7 @@ class SequelizeService implements ISequelizeService {
 
     this.umzug = new Umzug({
       storage: this.sequelizeStorage,
-      migrations: { glob: `./src/database/migrations/*.js` },
+      migrations: { glob: `./src/database/migrations/**/*.js` },
       context: this.sequelize.getQueryInterface(),
       logger: console,
     });
@@ -26,9 +26,6 @@ class SequelizeService implements ISequelizeService {
     try {
       await this.sequelize.sync();
       await this.umzug.up();
-      await this.umzug.down({
-        to: '20240719151942-add_text_tsv_column_to_post_table.js'
-      });
     }
     catch (err) {
       console.log(err);

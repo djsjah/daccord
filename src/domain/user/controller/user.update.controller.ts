@@ -1,13 +1,13 @@
 import { Op } from 'sequelize';
 import { Request, Response, NextFunction } from 'express';
-import User from '../../../database/models/user/user.model';
+import User from '../../../database/sequelize/models/user/user.model';
 import DomainController from '../../domain.controller.abstract';
 import UserService from '../service/user.service';
 import UserContactService from '../service/user.contact.service';
 import MailerTransporter from '../../../utils/lib/mailer/mailer.transporter';
 import JWTStrategy from '../../../utils/lib/jwt/jwt.strategy';
 import CryptoProvider from '../../../utils/lib/crypto/crypto.provider';
-import ValidateReqBody from '../../validation/decorator/req.body.decorator';
+import JoiRequestValidation from '../../validation/joi/decorator/joi.validation.decorator';
 import IUserPayload from '../../auth/validation/interface/user.payload.interface';
 import IUserUpdate from '../validation/interface/update/user.update.interface';
 import UserPublicUpdateSchema from '../validation/schema/update/public/user.public.update.schema';
@@ -23,7 +23,9 @@ class UserUpdateController extends DomainController {
     super();
   }
 
-  @ValidateReqBody(UserPublicUpdateSchema)
+  @JoiRequestValidation({
+    type: 'body'
+  }, UserPublicUpdateSchema)
   public async updateUser(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       let newUserData = req.body;
