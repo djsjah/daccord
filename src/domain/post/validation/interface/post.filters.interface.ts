@@ -1,4 +1,4 @@
-import IUserPayload from '../../../auth/validation/interface/user.payload.interface';
+import { IPostSearchSettings } from "./post.search.interface";
 
 export interface IPostFilters {
   title?: string;
@@ -6,18 +6,11 @@ export interface IPostFilters {
 };
 
 export interface IPostFiltersSettings {
-  search: {
-    params: string[],
-    methods: ISearchMethod[]
-  }
+  search: IPostSearchSettings
 };
 
-export interface ISearchType {
+export interface IPostSearchFilter {
   wordSearch?: string;
   phraseSearch?: string;
 };
 
-export interface ISearchMethod {
-  name: 'wordSearch' | 'phraseSearch',
-  method: (user: IUserPayload, searchParam: 'title' | 'content', searchString: string) => Promise<unknown[]>
-};

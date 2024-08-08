@@ -3,45 +3,30 @@ import { PostFiltersSchema, PostSearchSchema } from './validation/schema/post.se
 import {
   IPostFilters,
   IPostFiltersSettings,
-  ISearchType,
-  ISearchMethod
+  IPostSearchFilter
 } from './validation/interface/post.filters.interface';
-import PostService from './post.service';
+import PostService from './service/post.service';
+import PostElasticSearchMediator from './service/post.elasticsearch.mediator';
 import JoiRequestValidation from '../validation/joi/decorator/joi.validation.decorator';
 import IUserPayload from '../auth/validation/interface/user.payload.interface';
+import ElasticSearchMethod from '../../utils/lib/elasticsearch/validation/enum/elasticsearch.method';
+import PostSearchParam from './validation/enum/post.search.param';
 import IdSchema from '../validation/joi/schema/joi.params.schema';
 import PostCreateSchema from './validation/schema/post.create.schema';
 import PostUpdateSchema from './validation/schema/post.update.schema';
 import joiValidation from '../validation/joi/joi.validation';
 
 class PostController {
-  private readonly postFiltersSettings: IPostFiltersSettings = {
-    search: {
-      params: ['title', 'content'],
-      methods: [
-        {
-          name: 'wordSearch',
-          method: (
-            user: IUserPayload,
-            searchParam: 'title' | 'content',
-            searchString: string
-          ) => this.postService.wordSearch(user, searchParam, searchString)
-        },
-        {
-          name: 'phraseSearch',
-          method: (
-            user: IUserPayload,
-            searchParam: 'title' | 'content',
-            searchString: string
-          ) => this.postService.phraseSearch(user, searchParam, searchString)
-        }
-      ]
-    }
-  };
+  private readonly postFiltersSettings: IPostFiltersSettings;
 
   constructor(
-    private readonly postService: PostService
-  ) { }
+    private readonly postService: PostService,
+    private readonly postESMediator: PostElasticSearchMediator
+  ) {
+    this.postFiltersSettings = {
+      search: this.postESMediator.getSearchSettings()
+    };
+  }
 
   @JoiRequestValidation({
     type: 'query',
@@ -59,9 +44,9 @@ class PostController {
       else {
         const searchParam = this.postFiltersSettings.search.params.find(
           param => param in filters
-        ) as ('title' | 'content');
+        ) as PostSearchParam;
 
-        const searchParamBody: ISearchType = JSON.parse(filters[searchParam] as string);
+        const searchParamBody: IPostSearchFilter = JSON.parse(filters[searchParam] as string);
         const validError = joiValidation(searchParamBody, PostSearchSchema);
 
         if (validError) {
@@ -69,11 +54,11 @@ class PostController {
         }
 
         const searchMethod = this.postFiltersSettings.search.methods.find(
-          param => param.name in searchParamBody
-        ) as ISearchMethod;
+          param => param in searchParamBody
+        ) as ElasticSearchMethod;
 
-        const searchString = searchParamBody[searchMethod.name] as string;
-        posts = await searchMethod.method(user, searchParam, searchString);
+        const searchRequest = searchParamBody[searchMethod] as string;
+        posts = await this.postESMediator.callElasticSearch(user, searchParam, searchMethod, searchRequest);
       }
 
       return res.status(200).json({ status: 200, data: posts, message: "List of all posts" });

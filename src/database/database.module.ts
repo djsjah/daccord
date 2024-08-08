@@ -1,5 +1,4 @@
 import dependencyContainer from '../utils/lib/dependencyInjection/dependency.container';
-import ElasticSearchModule from './elasticsearch/elasticsearch.module';
 import PostgreModule from './sequelize/dialect/postgres/postgres.module';
 import SequelizeModule from './sequelize/sequelize.module';
 import PostgreService from './sequelize/dialect/postgres/postgres.service';
@@ -10,10 +9,6 @@ import Subscription from './sequelize/models/subscription/subscription.model';
 import ISequelizeConfig from './sequelize/sequelize.config.interface';
 
 class DatabaseModule {
-  constructor() {
-    dependencyContainer.registerInstance('esModule', new ElasticSearchModule());
-  }
-
   public async onModuleInit() {
     const seqConfig: ISequelizeConfig = {
       dialect: 'postgres',
@@ -24,7 +19,6 @@ class DatabaseModule {
       database: process.env.DATABASE_NAME_DEV!
     };
 
-    dependencyContainer.registerInstance('esModule', new ElasticSearchModule());
     dependencyContainer.registerInstance('pgModule', new PostgreModule(seqConfig));
     dependencyContainer.registerInstance('seqModule', new SequelizeModule(
       seqConfig,

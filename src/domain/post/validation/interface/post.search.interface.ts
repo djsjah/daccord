@@ -1,7 +1,14 @@
-import { SearchRequest } from '@elastic/elasticsearch/lib/api/types';
+import IPostIndex from './post.index.interface';
+import PostSearchParam from '../enum/post.search.param';
+import ElasticSearchMethod from '../../../../utils/lib/elasticsearch/validation/enum/elasticsearch.method';
 
-interface IPostSearch {
-  admin: SearchRequest;
-  user: SearchRequest;
+export interface IPostSearchSettings {
+  params: PostSearchParam[],
+  methods: ElasticSearchMethod[]
+}
+
+export interface IPostSearch {
+  index: string;
+  slop: number;
+  exceptions: Array<keyof IPostIndex>;
 };
-export default IPostSearch;

@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import dependencyContainer from './utils/lib/dependencyInjection/dependency.container';
 import AppRouter from './app.routes';
 import AppController from './app.controller';
+import ElasticSearchModule from './utils/lib/elasticsearch/elasticsearch.module';
 import DatabaseModule from './database/database.module';
 import MailerModule from './utils/lib/mailer/mailer.module';
 import CryptoModule from './utils/lib/crypto/crypto.module';
@@ -15,6 +16,7 @@ class AppModule {
   public async load(): Promise<void> {
     dotenv.config();
 
+    dependencyContainer.registerInstance('esModule', new ElasticSearchModule());
     dependencyContainer.registerInstance('dbModule', new DatabaseModule());
     await dependencyContainer.getInstance<DatabaseModule>('dbModule').onModuleInit();
 

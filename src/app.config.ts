@@ -8,9 +8,6 @@ import UserContactRouter from './domain/user/routes/user.contact.routes';
 import PostRouter from './domain/post/post.routes';
 import SubscriptionRouter from './domain/subscription/subscription.routes';
 
-import ElasticSearchProvider from './database/elasticsearch/elasticsearch.provider';
-import PostService from './domain/post/post.service';
-
 declare module 'express' {
   interface Request {
     user?: IUserPayload;
