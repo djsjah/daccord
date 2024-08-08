@@ -3,6 +3,7 @@ import Post from '../../../database/sequelize/models/post/post.model';
 import ElasticSearchProvider from '../../../utils/lib/elasticsearch/elasticsearch.provider';
 import ElasticSearchService from '../../../utils/lib/elasticsearch/elasticsearch.service';
 import IUserPayload from '../../auth/validation/interface/user.payload.interface';
+import IElasticSearchOptions from '../../../utils/lib/elasticsearch/validation/interface/elasticsearch.options.interface';
 import IPostIndex from '../validation/interface/post.index.interface';
 import IPostUpdate from '../validation/interface/post.update.interface';
 import PostSearchParam from '../validation/enum/post.search.param';
@@ -17,9 +18,12 @@ class PostElasticSearchMediator {
   private readonly searchOptions: IPostSearch = {
     index: 'post_idx',
     slop: 1,
-    exceptions: [
-      'authorId'
-    ]
+    restrictions: {
+      userIdField: 'authorId',
+      exceptions: [
+        'authorId'
+      ]
+    }
   };
 
   constructor(
@@ -33,14 +37,19 @@ class PostElasticSearchMediator {
     searchMethod: ElasticSearchMethod,
     searchRequest: string
   ): Promise<unknown[]> {
+    const curSearchOptions: IElasticSearchOptions = {
+      ...this.searchOptions,
+      user: user,
+      param: searchParam,
+      method: searchMethod,
+      request: searchRequest
+    };
+
+    curSearchOptions.restrictions.exceptions = user.role === 'admin' ?
+      undefined : this.searchOptions.restrictions.exceptions;
+
     return (
-      await this.esService.search({
-        ...this.searchOptions,
-        user: user,
-        param: searchParam,
-        method: searchMethod,
-        request: searchRequest
-      })
+      await this.esService.search(curSearchOptions)
     );
   }
 

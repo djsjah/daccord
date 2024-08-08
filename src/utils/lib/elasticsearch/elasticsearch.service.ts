@@ -38,7 +38,7 @@ class ElasticSearchService {
               ...this.setWordSearchRequest(searchOptions.param, searchOptions.request),
               {
                 term: {
-                  authorId: searchOptions.user.id
+                  [searchOptions.restrictions.userIdField]: searchOptions.user.id
                 }
               }
             ]
@@ -58,7 +58,7 @@ class ElasticSearchService {
               },
               {
                 term: {
-                  authorId: searchOptions.user.id
+                  [searchOptions.restrictions.userIdField]: searchOptions.user.id
                 }
               }
             ]
@@ -86,8 +86,7 @@ class ElasticSearchService {
     searchParam: string,
     searchRequest: string,
     slop: number
-  ): Partial<Record<string, string | QueryDslMatchPhraseQuery>>
-  {
+  ): Partial<Record<string, string | QueryDslMatchPhraseQuery>> {
     return {
       [searchParam]: {
         query: searchRequest,
@@ -100,7 +99,7 @@ class ElasticSearchService {
     const searchRequest: SearchRequest = {
       index: searchOptions.index,
       query: {},
-      _source_excludes: searchOptions.exceptions
+      _source_excludes: searchOptions.restrictions.exceptions
     };
 
     searchRequest.query = this.searchSettings[searchOptions.user.role][searchOptions.method](searchOptions);

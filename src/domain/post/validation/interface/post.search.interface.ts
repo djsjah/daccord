@@ -8,7 +8,10 @@ export interface IPostSearchSettings {
 }
 
 export interface IPostSearch {
-  index: string;
-  slop: number;
-  exceptions: Array<keyof IPostIndex>;
+  index: string,
+  slop: number,
+  restrictions: {
+    userIdField: keyof IPostIndex,
+    exceptions?: Array<keyof IPostIndex>
+  }
 };

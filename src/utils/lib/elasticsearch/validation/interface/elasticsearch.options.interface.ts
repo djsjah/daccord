@@ -8,6 +8,9 @@ interface IElasticSearchOptions {
   method: ElasticSearchMethod;
   request: string;
   slop: number;
-  exceptions?: string[];
+  restrictions: {
+    userIdField: string,
+    exceptions?: string[];
+  }
 };
 export default IElasticSearchOptions;
