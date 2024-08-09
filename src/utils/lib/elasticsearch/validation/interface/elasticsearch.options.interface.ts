@@ -3,14 +3,9 @@ import ElasticSearchMethod from '../enum/elasticsearch.method';
 
 interface IElasticSearchOptions {
   index: string;
-  user: IUserPayload;
   param: string;
   method: ElasticSearchMethod;
   request: string;
-  slop: number;
-  restrictions: {
-    userIdField: string,
-    exceptions?: string[];
-  }
+  slop: number
 };
 export default IElasticSearchOptions;

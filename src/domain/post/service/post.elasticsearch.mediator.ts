@@ -3,13 +3,16 @@ import Post from '../../../database/sequelize/models/post/post.model';
 import ElasticSearchProvider from '../../../utils/lib/elasticsearch/elasticsearch.provider';
 import ElasticSearchService from '../../../utils/lib/elasticsearch/elasticsearch.service';
 import IUserPayload from '../../auth/validation/interface/user.payload.interface';
-import IElasticSearchOptions from '../../../utils/lib/elasticsearch/validation/interface/elasticsearch.options.interface';
 import IPostIndex from '../validation/interface/post.index.interface';
 import IPostUpdate from '../validation/interface/post.update.interface';
 import PostSearchParam from '../validation/enum/post.search.param';
 import ElasticSearchMethod from '../../../utils/lib/elasticsearch/validation/enum/elasticsearch.method';
 
 class PostElasticSearchMediator {
+  private readonly filterExcludes: Array<keyof IPostIndex> = [
+    'authorId'
+  ];
+
   private readonly searchSettings: IPostSearchSettings = {
     params: [PostSearchParam.title, PostSearchParam.content],
     methods: [ElasticSearchMethod.wordSearch, ElasticSearchMethod.phraseSearch]
@@ -17,13 +20,7 @@ class PostElasticSearchMediator {
 
   private readonly searchOptions: IPostSearch = {
     index: 'post_idx',
-    slop: 1,
-    restrictions: {
-      userIdField: 'authorId',
-      exceptions: [
-        'authorId'
-      ]
-    }
+    slop: 1
   };
 
   constructor(
@@ -31,26 +28,37 @@ class PostElasticSearchMediator {
     private readonly esProvider: ElasticSearchProvider
   ) { }
 
+  private filterSearchResult(
+    user: IUserPayload,
+    searchResult: IPostIndex[]
+  ): IPostIndex[] | Omit<IPostIndex, keyof Array<keyof IPostIndex>>[] {
+    return (
+      user.role === 'user'
+        ? searchResult
+          .filter(post => post.authorId === user.id)
+          .map(({ ...rest }) => {
+            let filteredRest = { ...rest };
+            this.filterExcludes.forEach(field => delete filteredRest[field]);
+            return filteredRest;
+          })
+        : searchResult
+    );
+  }
+
   public async callElasticSearch(
     user: IUserPayload,
     searchParam: PostSearchParam,
     searchMethod: ElasticSearchMethod,
     searchRequest: string
-  ): Promise<unknown[]> {
-    const curSearchOptions: IElasticSearchOptions = {
+  ): Promise<IPostIndex[] | Omit<IPostIndex, keyof Array<keyof IPostIndex>>[]> {
+    const searchResult = await this.esService.search({
       ...this.searchOptions,
-      user: user,
       param: searchParam,
       method: searchMethod,
       request: searchRequest
-    };
+    }) as IPostIndex[];
 
-    curSearchOptions.restrictions.exceptions = user.role === 'admin' ?
-      undefined : this.searchOptions.restrictions.exceptions;
-
-    return (
-      await this.esService.search(curSearchOptions)
-    );
+    return this.filterSearchResult(user, searchResult);
   }
 
   public async addDocumentToIndex(postIndexData: IPostIndex): Promise<void> {
