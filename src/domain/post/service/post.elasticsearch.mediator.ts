@@ -14,8 +14,8 @@ class PostElasticSearchMediator {
   ];
 
   private readonly searchSettings: IPostSearchSettings = {
-    params: [PostSearchParam.title, PostSearchParam.content],
-    methods: [ElasticSearchMethod.wordSearch, ElasticSearchMethod.phraseSearch]
+    params: [ PostSearchParam.title, PostSearchParam.content ],
+    methods: [ ElasticSearchMethod.wordSearch, ElasticSearchMethod.phraseSearch ]
   };
 
   private readonly searchOptions: IPostSearch = {
@@ -62,25 +62,20 @@ class PostElasticSearchMediator {
   }
 
   public async addDocumentToIndex(postIndexData: IPostIndex): Promise<void> {
-    await this.esProvider.indexDocument(this.searchOptions.index, postIndexData.id, {
-      id: postIndexData.id,
-      title: postIndexData.title,
-      content: postIndexData.content,
-      authorId: postIndexData.authorId
-    });
+    await this.esProvider.indexDocument(this.searchOptions.index, postIndexData.id, postIndexData);
   }
 
   public async updateDocumentInIndex(post: Post, newPostData: IPostUpdate): Promise<void> {
-    if (newPostData.title && post.title !== newPostData.title) {
-      await this.esProvider.updateDocument(this.searchOptions.index, post.id, {
-        title: newPostData.title
-      });
-    }
+    const postChanges: Partial<IPostIndex> = {};
 
-    if (newPostData.content && post.content !== newPostData.content) {
-      await this.esProvider.updateDocument(this.searchOptions.index, post.id, {
-        content: newPostData.content
-      });
+    this.searchSettings.params.forEach(key => {
+      if (key in newPostData && newPostData[key] !== post[key]) {
+        postChanges[key] = newPostData[key];
+      }
+    });
+
+    if (Object.keys(postChanges).length > 0) {
+      await this.esProvider.updateDocument(this.searchOptions.index, post.id, postChanges);
     }
   }
 
