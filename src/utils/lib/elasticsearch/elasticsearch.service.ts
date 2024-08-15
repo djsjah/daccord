@@ -1,70 +1,31 @@
-import {
-  SearchRequest,
-  QueryDslQueryContainer,
-  QueryDslMatchPhraseQuery
-} from '@elastic/elasticsearch/lib/api/types';
 import ElasticSearchProvider from './elasticsearch.provider';
 import IElasticSearchOptions from './validation/interface/elasticsearch.options.interface';
-import IElasticSearchSettings from './validation/interface/elasticsearch.settings.interface';
+import IElastiSearchMethod from './validation/interface/elasticsearch.method.interface';
+import IElasticSearchRequest from './validation/interface/elasticsearch.request.interface';
 
 class ElasticSearchService {
   private readonly esProvider: ElasticSearchProvider;
-  private readonly searchSettings: IElasticSearchSettings = {
-    admin: {
-      wordSearch: (searchOptions: IElasticSearchOptions) => {
-        return {
-          bool: {
-            must: [
-              ...this.setWordSearchRequest(searchOptions.param, searchOptions.request)
-            ]
+  private readonly searchSettings: IElastiSearchMethod = {
+    wordSearch: (searchOptions: IElasticSearchOptions) => {
+      return [
+        ...searchOptions.request.split(' ').map(word => ({
+          match: {
+            [searchOptions.param]: word
           }
-        };
-      },
-      phraseSearch: (searchOptions: IElasticSearchOptions) => {
-        return {
-          match_phrase: this.setPhraseSearchRequest(
-            searchOptions.param,
-            searchOptions.request,
-            searchOptions.slop
-          )
-        };
-      }
+        }))
+      ]
     },
-    user: {
-      wordSearch: (searchOptions: IElasticSearchOptions) => {
-        return {
-          bool: {
-            must: [
-              ...this.setWordSearchRequest(searchOptions.param, searchOptions.request),
-              {
-                term: {
-                  [searchOptions.restrictions.userIdField]: searchOptions.user.id
-                }
-              }
-            ]
+    phraseSearch: (searchOptions: IElasticSearchOptions) => {
+      return [
+        {
+          match_phrase: {
+            [searchOptions.param]: {
+              query: searchOptions.request,
+              slop: searchOptions.slop
+            }
           }
-        };
-      },
-      phraseSearch: (searchOptions: IElasticSearchOptions) => {
-        return {
-          bool: {
-            must: [
-              {
-                match_phrase: this.setPhraseSearchRequest(
-                  searchOptions.param,
-                  searchOptions.request,
-                  searchOptions.slop
-                )
-              },
-              {
-                term: {
-                  [searchOptions.restrictions.userIdField]: searchOptions.user.id
-                }
-              }
-            ]
-          }
-        };
-      }
+        }
+      ]
     }
   };
 
@@ -72,37 +33,24 @@ class ElasticSearchService {
     this.esProvider = esProvider;
   }
 
-  private setWordSearchRequest(searchParam: string, searchRequest: string): Array<QueryDslQueryContainer> {
-    return (
-      searchRequest.split(' ').map(word => ({
-        match: {
-          [searchParam]: word
-        }
-      }))
-    );
-  }
-
-  private setPhraseSearchRequest(
-    searchParam: string,
-    searchRequest: string,
-    slop: number
-  ): Partial<Record<string, string | QueryDslMatchPhraseQuery>> {
-    return {
-      [searchParam]: {
-        query: searchRequest,
-        slop: slop
-      }
-    };
-  }
-
   public async search(searchOptions: IElasticSearchOptions): Promise<unknown[]> {
-    const searchRequest: SearchRequest = {
+    const searchRequest: IElasticSearchRequest = {
       index: searchOptions.index,
-      query: {},
-      _source_excludes: searchOptions.restrictions.exceptions
+      query: {
+        bool: {
+          must: []
+        }
+      },
+      _source_excludes: searchOptions.excludes
     };
 
-    searchRequest.query = this.searchSettings[searchOptions.user.role][searchOptions.method](searchOptions);
+    if (searchOptions.term) {
+      searchRequest.query.bool.must.push({
+        term: searchOptions.term
+      });
+    }
+
+    searchRequest.query.bool.must.push(...this.searchSettings[searchOptions.method](searchOptions));
 
     const searchResult = await this.esProvider.searchByRequest(searchRequest);
     return searchResult.hits.hits.map(hit => hit._source);

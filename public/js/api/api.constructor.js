@@ -1,9 +1,3 @@
-export async function convertResponseToJson(response) {
-  return (
-    await response.json()
-  );
-}
-
 export async function signin(authData) {
   return (
     await fetch('http://localhost:5000/auth/signin', {
@@ -18,13 +12,13 @@ export async function signin(authData) {
 
 export async function logout() {
   return (
-    await fetch("http://localhost:5000/auth/logout")
+    await fetch('http://localhost:5000/auth/logout')
   );
 }
 
 export async function getUserAuthData() {
   return (
-    await fetch("http://localhost:5000/auth/payload")
+    await fetch('http://localhost:5000/auth/payload')
   );
 }
 
@@ -34,11 +28,9 @@ export async function getAllUsers(searchString = '') {
   );
 }
 
-export async function getUserPosts() {
+export async function getUserPosts(filters = '') {
   return (
-    await fetch("http://localhost:5000/api/posts/public", {
-      credentials: 'include'
-    })
+    await fetch(`http://localhost:5000/api/posts/public?${filters}`)
   );
 }
 

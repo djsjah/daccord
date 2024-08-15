@@ -1,47 +1,31 @@
-import { IModal } from './js/presentation/modal/modal.interface.js';
-import { ModalAuth } from './js/presentation/modal/modal.auth.js';
-import { AuthBuilder } from './js/presentation/dom/builder/auth.builder.js';
-import { ApiTester } from './js/test/api/api.tester.js';
+import { ModalModule } from './js/presentation/modal/modal.module.js';
+import { AuthModule } from './js/presentation/auth/auth.module.js';
+import { PostSearch } from './js/presentation/post/post.search.js';
+import { ApiTester } from './js/api/api.tester.js';
 import {
   getUserAuthData,
-  convertResponseToJson,
   isStatusOk
-} from './js/data/api/api.constructor.js';
+} from './js/api/api.constructor.js';
 
 async function main() {
-  let authData = null;
+  let userData = null;
 
   try {
-    const response = await getUserAuthData();
-    console.log("Попытка получить данные пользователя (http://localhost:5000/auth): ", response);
-    isStatusOk(response);
+    const authResponse = await getUserAuthData();
+    console.log("Попытка получить данные пользователя (http://localhost:5000/auth): ", authResponse);
+    isStatusOk(authResponse);
 
-    authData = await convertResponseToJson(response);
-    console.log("\nДанные ответа (запрос - http://localhost:5000/auth): ", authData);
+    userData = await authResponse.json();
+    console.log("\nДанные ответа (запрос - http://localhost:5000/auth): ", userData);
   }
   catch (err) {
     console.log(err);
   }
 
-  await AuthBuilder(authData);
-
-  IModal();
-  ModalAuth();
+  AuthModule(userData);
+  ModalModule();
+  PostSearch();
   ApiTester();
 }
 
 main();
-
-export function useTemplate(template, curElem) {
-  curElem.append(template.content.cloneNode(true));
-}
-
-export function getDataFromForm(form) {
-  return Object.values(form).reduce((obj, field) => {
-    if (field.name !== '') {
-      obj[field.name] = field.value;
-    }
-
-    return obj;
-  }, {});
-}

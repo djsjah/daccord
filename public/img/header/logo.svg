@@ -1,0 +1,37 @@
+<svg
+   width="40.249741mm"
+   height="11.492839mm"
+   viewBox="0 0 40.249741 11.492839"
+   version="1.1"
+   id="svg1"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1">
+    <linearGradient
+       id="swatch7">
+      <stop
+         style="stop-color:#ffffff;stop-opacity:1;"
+         offset="0"
+         id="stop7" />
+    </linearGradient>
+    <rect
+       x="91.854797"
+       y="183.70959"
+       width="185.06039"
+       height="81.048347"
+       id="rect1" />
+  </defs>
+  <g
+     id="layer1"
+     transform="translate(-25.121981,-50.793295)">
+    <text
+       xml:space="preserve"
+       transform="scale(0.26458333)"
+       id="text1"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:64px;font-family:'French Script MT';-inkscape-font-specification:'French Script MT, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;white-space:pre;shape-inside:url(#rect1);display:inline;fill:#ffffff;fill-opacity:1;stroke:#000000"><tspan
+         x="91.855469"
+         y="233.75591"
+         id="tspan2">Daccord</tspan></text>
+  </g>
+</svg>

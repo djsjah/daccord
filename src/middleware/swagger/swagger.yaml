@@ -466,20 +466,6 @@ paths:
         - posts
       security:
         - BearerAuth: []
-      parameters:
-        - in: query
-          name: filters
-          schema:
-            type: object
-            properties:
-              title || content:
-                type: object
-                properties:
-                  phraseSearch || wordSearch:
-                    type: string
-          required: false
-          description: Object that defines filters for searching among titles or contents
-          style: deepObject
       responses:
         '200':
           description: List of all user posts

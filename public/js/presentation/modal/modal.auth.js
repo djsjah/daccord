@@ -1,50 +1,44 @@
-import { getDataFromForm } from '../../../main.js';
+import { getDataFromForm } from '../../helpers/helpers.js';
+import { signin, isStatusOk } from '../../api/api.constructor.js';
 import {
-  getModalName,
   showModal,
   hideModal,
   startSavePreloader,
   endSavePreloader,
   setModalError
-} from './modal.interface.js';
-import {
-  signin,
-  logout,
-  convertResponseToJson,
-  isStatusOk
-} from '../../data/api/api.constructor.js';
+} from './modal.module.js';
 
-const NAME = getModalName() + 'auth';
-const modalAuth = document.querySelector(`.${NAME}`);
+const modalAuth = document.querySelector('.modal_auth');
 
 export function ModalAuth() {
   const openModalButton = document.querySelector('.header__button_auth');
-  const modalForm = document.querySelector(`.${NAME} .modal__body_form`);
-  const closeModalButtonArray = document.querySelectorAll(`.${NAME} .modal__button_cancel`);
+  const authButton = modalAuth.querySelector('.modal__button_save');
+  const modalForm = modalAuth.querySelector('.modal__body_form');
+  const closeModalButtonArray = modalAuth.querySelectorAll('.modal__button_cancel');
 
-  openModalButton.addEventListener('click', showModalEvent);
+  openModalButton.addEventListener('click', async () => {
+    await showModal(modalAuth);
+  });
 
   modalForm.addEventListener('submit', async (ev) => {
     ev.preventDefault();
-
-    const addUserButton = document.querySelector(`.${NAME} .modal__button_save`);
-    startSavePreloader(addUserButton);
+    startSavePreloader(authButton);
 
     try {
-      const response = await signin(getDataFromForm(modalForm));
-      console.log("\n\nПопытка авторизоваться пользователю (http://localhost:5000/auth/signin): ", response);
-      isStatusOk(response);
+      const signinResponse = await signin(getDataFromForm(modalForm));
+      console.log("\n\nПопытка авторизоваться пользователю (http://localhost:5000/auth/signin): ", signinResponse);
+      isStatusOk(signinResponse);
 
-      const data = await convertResponseToJson(response);
-      console.log("\nДанные ответа (запрос - http://localhost:5000/auth/signin): ", data);
+      const userData = await signinResponse.json();
+      console.log("\nДанные ответа (запрос - http://localhost:5000/auth/signin): ", userData);
     }
     catch (err) {
-      await endSavePreloader(addUserButton);
-      setModalError(err);
+      await endSavePreloader(authButton);
+      setModalError(modalAuth, err);
       return;
     }
 
-    await endSavePreloader(addUserButton);
+    await endSavePreloader(authButton);
     location.reload(true);
   });
 
@@ -53,25 +47,4 @@ export function ModalAuth() {
       await hideModal(modalAuth);
     });
   });
-}
-
-export async function setLogoutEvent(openModalButton) {
-  openModalButton.removeEventListener('click', showModalEvent);
-  openModalButton.addEventListener('click', async () => {
-    try {
-      const response = await logout();
-      isStatusOk(response);
-    }
-    catch (err) {
-      console.log(err);
-      return;
-    }
-
-    location.reload(true);
-  });
-}
-
-
-async function showModalEvent() {
-  await showModal(modalAuth, NAME);
 }

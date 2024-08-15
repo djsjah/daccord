@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { PostFiltersSchema, PostSearchSchema } from './validation/schema/post.search.schema';
+import { PostFiltersSchema } from './validation/schema/post.search.schema';
 import {
-  IPostFilters,
   IPostFiltersSettings,
+  IPostFilters,
   IPostSearchFilter
 } from './validation/interface/post.filters.interface';
 import PostService from './service/post.service';
@@ -14,7 +14,6 @@ import PostSearchParam from './validation/enum/post.search.param';
 import IdSchema from '../validation/joi/schema/joi.params.schema';
 import PostCreateSchema from './validation/schema/post.create.schema';
 import PostUpdateSchema from './validation/schema/post.update.schema';
-import joiValidation from '../validation/joi/joi.validation';
 
 class PostController {
   private readonly postFiltersSettings: IPostFiltersSettings;
@@ -46,13 +45,7 @@ class PostController {
           param => param in filters
         ) as PostSearchParam;
 
-        const searchParamBody: IPostSearchFilter = JSON.parse(filters[searchParam] as string);
-        const validError = joiValidation(searchParamBody, PostSearchSchema);
-
-        if (validError) {
-          return res.status(422).send(validError);
-        }
-
+        const searchParamBody = filters[searchParam] as IPostSearchFilter;
         const searchMethod = this.postFiltersSettings.search.methods.find(
           param => param in searchParamBody
         ) as ElasticSearchMethod;

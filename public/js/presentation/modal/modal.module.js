@@ -1,51 +1,42 @@
-import { useTemplate } from '../../../main.js';
-
-const MODAL_NAME = 'modal_';
-const valueTemplate = document.createElement('div');
+import { cloneNodeFromTemplate } from '../../helpers/helpers.js';
 
 const decoratorModal = document.querySelector('.decorator_modal');
 const disabledBlock = document.querySelector('.disabled-block');
-const savePreloaderTemplate = document.querySelector('.preloader-template_save');
+const savePreloader = cloneNodeFromTemplate(
+  document.querySelector('.preloader-template_save')
+);
 
-const curModal = {
-  name: '',
-  elem: valueTemplate
-};
+let curModal = null;
 
-export function IModal() {
+export function ModalModule() {
   document.addEventListener('mouseup', (ev) => {
-    if (
-      !curModal.elem.contains(ev.target) && curModal.elem.classList.contains('modal') &&
-      ev.target !== disabledBlock
-    ) {
-      hideModal(curModal.elem);
+    if (curModal && !curModal.contains(ev.target) && ev.target !== disabledBlock) {
+      hideModal(curModal);
     }
   });
 
   document.addEventListener('keydown', (ev) => {
-    if (ev.key === "Escape" && curModal.elem.classList.contains('modal') && ev.target !== disabledBlock) {
-      hideModal(curModal.elem);
+    if (ev.key === "Escape" && curModal && ev.target !== disabledBlock) {
+      hideModal(curModal);
     }
   });
 }
 
-export async function showModal(modal, name) {
+export async function showModal(modal) {
   await toggleAnimInModal(modal);
-  curModal.name = name;
-  curModal.elem = modal;
+  curModal = modal;
 }
 
 export async function hideModal(modal) {
   await toggleAnimInModal(modal);
-  curModal.name = '';
-  curModal.elem = valueTemplate;
+  curModal = null;
 }
 
 export function startSavePreloader(modalSaveButton) {
-  useTemplate(savePreloaderTemplate, modalSaveButton);
+  modalSaveButton.append(savePreloader);
   modalSaveButton.insertBefore(modalSaveButton.children[1], modalSaveButton.children[0]);
 
-  disabledBlock.classList.remove('hidden-total');
+  disabledBlock.classList.remove('display-none');
   modalSaveButton.classList.add('modal__button_load');
   modalSaveButton.children[0].classList.add('rotate-anim');
 }
@@ -57,29 +48,21 @@ export async function endSavePreloader(modalSaveButton) {
     }, 1700);
   });
 
-  disabledBlock.classList.add('hidden-total');
+  disabledBlock.classList.add('display-none');
   modalSaveButton.classList.remove('modal__button_load');
 }
 
-export function setModalError(err) {
-  const modalFoot = document.querySelector(`.${curModal.name} .modal__foot`);
-  const modalError = document.querySelector(`.${curModal.name} .modal__error`);
+export function setModalError(modal, error) {
+  const modalFoot = modal.querySelector('.modal__foot');
+  const modalError = modal.querySelector('.modal__error');
 
-  modalError.textContent = err;
+  modalError.textContent = error;
   modalFoot.classList.add('modal__foot_error');
-  modalError.classList.remove('hidden-total');
+  modalError.classList.remove('display-none');
 }
 
 export function resetModal(modalForm) {
   modalForm.reset();
-}
-
-export function getModalName() {
-  return MODAL_NAME;
-}
-
-export function getCurModal() {
-  return curModal;
 }
 
 async function toggleAnimInModal(modal) {
@@ -96,15 +79,15 @@ async function toggleAnimInModal(modal) {
       }, 300);
     });
 
-    decoratorModal.classList.add('hidden-total');
+    decoratorModal.classList.add('display-none');
     modal.classList.remove('hide-anim');
-    modal.classList.add('hidden-total');
+    modal.classList.add('display-none');
   }
   else {
-    decoratorModal.classList.remove('hidden-total');
+    decoratorModal.classList.remove('display-none');
     decoratorModal.classList.add('appear-anim');
 
-    modal.classList.remove('hidden-total');
+    modal.classList.remove('display-none');
     modal.classList.add('modal-appear-anim');
   }
 }

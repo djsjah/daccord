@@ -5,9 +5,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style/normalize.css">
-  <link rel="stylesheet" href="style/initialStyle.css">
   <link rel="stylesheet" href="style/style.css">
-  <link rel="stylesheet" href="anim/anim.css">
+  <link rel="stylesheet" href="style/anim.css">
   <script type="module" src="main.js"></script>
   <title>Daccord</title>
 </head>
@@ -16,55 +15,37 @@
   <header class="header">
     <div class="container">
       <div class="header__block flex">
-        <nav class="header__nav flex">
-          <ul class="header__nav-list">
-            <li class="header__nav-item">
-              <a href="" class="header__interactive flex header__interactive_logo">
-                <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="40"
-                  viewbox="0 0 30 30.000001" height="40" version="1.0">
-                  <defs>
-                    <clippath>
-                      <path
-                        d="M 4.96875 2.902344 L 25.292969 2.902344 L 25.292969 26.128906 L 4.96875 26.128906 Z M 4.96875 2.902344 "
-                        clip-rule="nonzero" fill="#ffffff">
-                      </path>
-                    </clippath>
-                  </defs>
-                  <g>
-                    <path fill="#ffffff"
-                      d="M 14.042969 2.90625 L 5.503906 2.90625 C 5.207031 2.90625 4.96875 3.144531 4.96875 3.4375 L 4.96875 25.597656 C 4.96875 25.886719 5.207031 26.125 5.503906 26.125 L 14.042969 26.125 C 21.191406 26.125 25.292969 21.855469 25.292969 14.417969 C 25.292969 7.210938 21.085938 2.90625 14.042969 2.90625 Z M 13.59375 22.429688 L 9.78125 22.429688 L 9.78125 6.601562 L 13.59375 6.601562 C 17.921875 6.601562 20.480469 9.476562 20.480469 14.476562 C 20.480469 19.589844 17.984375 22.429688 13.59375 22.429688 Z M 13.59375 22.429688 "
-                      fill-opacity="1" fill-rule="nonzero">
-                    </path>
-                  </g>
-                </svg>
-              </a>
-            </li>
+        <picture class="header__picture flex">
+          <img src="img/header/logo.svg" alt="Логотип 'Daccord'">
+        </picture>
 
-            <li class="header__nav-item">
+        <nav class="header__nav">
+          <ul class="header__list header__list_nav flex list-reset">
+            <li class="header__item">
               <button class="header__button button-reset">
                 Главная
               </button>
             </li>
 
-            <li class="header__nav-item">
+            <li class="header__item">
               <button class="header__button button-reset">
                 О&nbsp;нас
               </button>
             </li>
 
-            <li class="header__nav-item">
+            <li class="header__item">
               <button class="header__button button-reset">
                 Документация
               </button>
             </li>
 
-            <li class="header__nav-item">
+            <li class="header__item">
               <button class="header__button button-reset">
                 Блог
               </button>
             </li>
 
-            <li class="header__nav-item">
+            <li class="header__item">
               <button class="header__button button-reset">
                 Поддержка
               </button>
@@ -72,8 +53,8 @@
           </ul>
         </nav>
 
-        <ul class="header__user-list flex">
-          <li class="header__user-item">
+        <ul class="header__list header__list_user flex list-reset">
+          <li class="header__item">
             <button class="header__interactive header__interactive_search flex button-reset">
               <svg width="28" height="28" viewbox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect width="8.79564" height="2.19891"
@@ -85,8 +66,8 @@
             </button>
           </li>
 
-          <li class="header__user-item">
-            <div class="header__user-info flex">
+          <li class="header__item">
+            <div class="header__auth-info flex">
               <button class="header__interactive header__interactive_account button-reset">
                 <svg fill="#ffffff" width="40px" height="40px" viewbox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
                   <g stroke-width="0" />
@@ -98,13 +79,13 @@
                 </svg>
               </button>
 
-              <span class="header__user hidden-total">
+              <span class="header__user display-none">
                 jason_statham
               </span>
             </div>
           </li>
 
-          <li class="header__user-item">
+          <li class="header__item">
             <button class="header__button header__button_auth button-reset">
               Войти
             </button>
@@ -117,31 +98,79 @@
   <main class="main">
     <section class="hero">
       <div class="container">
-        <div class="hero__content">
-          <h1 class="hero__title">Создайте вашу историю</h1>
+        <div class="hero__block">
+          <h1 class="hero__title">
+            Создайте вашу историю
+          </h1>
+
           <p class="hero__paragraph">
             Мы&nbsp;создали данное приложение, чтобы вы&nbsp;могли регулярно делиться своими мыслями
             с&nbsp;другими людьми. Пожалуйста, будьте вежливы и&nbsp;соблюдайте правила сообщества. В&nbsp;таком
             случае&nbsp;&mdash; здесь вам всегда будут рады. Наша команда желает вам приятно провести время!
           </p>
-          <a href="#footer" class="hero__link main-link flex button-reset">
+
+          <a href="#footer" class="hero__link interactive-button flex button-reset">
             Подписаться на&nbsp;рассылку
           </a>
         </div>
       </div>
     </section>
 
-    <section class="api-test">
+    <section class="post section">
       <div class="container">
+        <h2 class="post__title">
+          Найдите ваши посты по фильтру
+        </h2>
+
+        <form class="post__form flex">
+          <select name="searchParams" class="post__select post__select_param">
+            <option value="title" class="post__option">
+              Заголовок поста
+            </option>
+
+            <option value="content" class="post__option">
+              Содержимое поста
+            </option>
+          </select>
+
+          <select name="searchMethods" class="post__select post__select_method">
+            <option value="wordSearch" class="post__option">
+              Полнотекстовый поиск
+            </option>
+
+            <option value="phraseSearch" class="post__option">
+              Фразовый поиск
+            </option>
+          </select>
+
+          <input type="text" name="searchRequest" placeholder="Введите запрос" class="post__input" required>
+
+          <button class="post__button interactive-button button-reset">
+            Найти посты
+          </button>
+        </form>
+
+        <div class="post__inspector display-none">
+          <pre class="post__review"><code class="post__code"></code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="api-test section">
+      <div class="container">
+        <h2 class="api-test__title">
+          Тестирование
+        </h2>
+
         <ul class="api-test__list flex">
           <li class="api-test__item">
-            <button class="api-test__button api-test__button_get_all_users main-link button-reset">
+            <button class="api-test__button api-test__button_get_all_users interactive-button button-reset">
               Получить всех пользователей (для админов)
             </button>
           </li>
 
           <li class="api-test__item">
-            <button class="api-test__button api-test__button_get_user_posts main-link button-reset">
+            <button class="api-test__button api-test__button_get_user_posts interactive-button button-reset">
               Получить все свои посты
             </button>
           </li>
@@ -149,11 +178,11 @@
       </div>
     </section>
 
-    <div class="disabled-block hidden-total">
+    <div class="disabled-block display-none">
     </div>
 
-    <div class="decorator decorator_modal hidden-total flex">
-      <div class="modal modal_auth hidden-total">
+    <div class="decorator decorator_modal display-none flex">
+      <div class="modal modal_auth display-none">
         <div class="modal__head flex">
           <h2 class="modal__title">
             Авторизация
@@ -208,7 +237,7 @@
           </ul>
 
           <div class="modal__foot flex">
-            <p class="modal__error hidden-total">
+            <p class="modal__error display-none">
             </p>
 
             <ul class="modal__list modal__list_foot flex">
@@ -245,11 +274,16 @@
         </defs>
       </svg>
     </template>
+
+    <template class="auth-template auth-template_logout">
+      <button class="header__button header__button_auth_out button-reset">
+        Выйти
+      </button>
+    </template>
   </main>
 
   <footer class="footer">
     <div class="container">
-
     </div>
   </footer>
 </body>
