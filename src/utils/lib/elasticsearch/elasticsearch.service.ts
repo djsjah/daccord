@@ -7,25 +7,21 @@ class ElasticSearchService {
   private readonly esProvider: ElasticSearchProvider;
   private readonly searchSettings: IElastiSearchMethod = {
     wordSearch: (searchOptions: IElasticSearchOptions) => {
-      return [
-        ...searchOptions.request.split(' ').map(word => ({
-          match: {
-            [searchOptions.param]: word
-          }
-        }))
-      ]
+      return searchOptions.request.split(' ').map(word => ({
+        match: {
+          [searchOptions.param]: word
+        }
+      }))
     },
     phraseSearch: (searchOptions: IElasticSearchOptions) => {
-      return [
-        {
-          match_phrase: {
-            [searchOptions.param]: {
-              query: searchOptions.request,
-              slop: searchOptions.slop
-            }
+      return [{
+        match_phrase: {
+          [searchOptions.param]: {
+            query: searchOptions.request,
+            slop: searchOptions.slop
           }
         }
-      ]
+      }]
     }
   };
 
