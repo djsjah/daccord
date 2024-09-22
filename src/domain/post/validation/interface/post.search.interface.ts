@@ -1,18 +1,18 @@
 import IPostIndex from './post.index.interface';
-import PostSearchParam from '../enum/post.search.param';
-import ElasticSearchMethod from '../../../../utils/lib/elasticsearch/validation/enum/elasticsearch.method';
+import PostESParam from '../enum/post.elasticsearch.param.enum';
+import ElasticSearchMethod from '../../../../utils/lib/elasticsearch/validation/enum/elasticsearch.method.enum';
 
-export interface IPostSearchSettings {
-  params: PostSearchParam[];
+export interface IPostESSettings {
+  params: PostESParam[];
   methods: ElasticSearchMethod[];
 }
 
-export interface IPostSearch {
+export interface IPostESOptions {
   index: string;
   slop: number;
 };
 
-export interface IPostSearchRestrict {
+export interface IPostESRestrict {
   admin: () => void;
   user: (userId: string) => {
     excludes: Array<keyof IPostIndex>,

@@ -22,7 +22,7 @@ class PostRouter extends AbstractRouter {
   protected override setupRouter(): void {
     this.postRouter.use('/public', authGuard);
     this.postRouter.get('/public', (...args) => this.postController.getAllUserPosts(...args));
-    this.postRouter.post('/public', (...args) => this.postController.createUserPost(...args));
+    this.postRouter.post('/public/:postId?', (...args) => this.postController.createUserPost(...args));
     this.postRouter.get('/public/:postId', (...args) => this.postController.getUserPostById(...args));
     this.postRouter.patch('/public/:postId', (...args) => this.postController.updateUserPostById(...args));
     this.postRouter.delete('/public/:postId', (...args) => this.postController.deleteUserPostById(...args));

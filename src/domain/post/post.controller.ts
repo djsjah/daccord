@@ -1,31 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
 import { PostFiltersSchema } from './validation/schema/post.search.schema';
-import {
-  IPostFiltersSettings,
-  IPostFilters,
-  IPostSearchFilter
-} from './validation/interface/post.filters.interface';
+import { IPostFilters } from './validation/interface/post.filters.interface';
+import { IdSchemaRequired, IdSchemaOptional } from '../validation/joi/schema/joi.params.schema';
 import PostService from './service/post.service';
-import PostElasticSearchMediator from './service/post.elasticsearch.mediator';
+import PostFilter from './service/post.filter';
+import PostRevision from './service/post.revision';
 import JoiRequestValidation from '../validation/joi/decorator/joi.validation.decorator';
 import IUserPayload from '../auth/validation/interface/user.payload.interface';
-import ElasticSearchMethod from '../../utils/lib/elasticsearch/validation/enum/elasticsearch.method';
-import PostSearchParam from './validation/enum/post.search.param';
-import IdSchema from '../validation/joi/schema/joi.params.schema';
-import PostCreateSchema from './validation/schema/post.create.schema';
 import PostUpdateSchema from './validation/schema/post.update.schema';
 
 class PostController {
-  private readonly postFiltersSettings: IPostFiltersSettings;
-
   constructor(
     private readonly postService: PostService,
-    private readonly postESMediator: PostElasticSearchMediator
-  ) {
-    this.postFiltersSettings = {
-      search: this.postESMediator.getSearchSettings()
-    };
-  }
+    private readonly postFilter: PostFilter,
+    private readonly postRevision: PostRevision
+  ) { }
 
   @JoiRequestValidation({
     type: 'query',
@@ -38,20 +27,14 @@ class PostController {
       let posts = [];
 
       if (!filters) {
-        posts = await this.postService.getAllUserPosts({}, user);
+        posts = await this.postService.getAllUserPosts({
+          where: {
+            isMainRevision: true
+          }
+        }, user);
       }
       else {
-        const searchParam = this.postFiltersSettings.search.params.find(
-          param => param in filters
-        ) as PostSearchParam;
-
-        const searchParamBody = filters[searchParam] as IPostSearchFilter;
-        const searchMethod = this.postFiltersSettings.search.methods.find(
-          param => param in searchParamBody
-        ) as ElasticSearchMethod;
-
-        const searchRequest = searchParamBody[searchMethod] as string;
-        posts = await this.postESMediator.callElasticSearch(user, searchParam, searchMethod, searchRequest);
+        posts = await this.postFilter.searchByFilter(user, filters);
       }
 
       return res.status(200).json({ status: 200, data: posts, message: "List of all posts" });
@@ -64,7 +47,7 @@ class PostController {
   @JoiRequestValidation({
     type: 'params',
     name: 'postId'
-  }, IdSchema)
+  }, IdSchemaRequired)
   public async getUserPostById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = req.user as IUserPayload;
@@ -86,15 +69,29 @@ class PostController {
   }
 
   @JoiRequestValidation({
+    type: 'params',
+    name: 'postId'
+  }, IdSchemaOptional)
+  @JoiRequestValidation({
     type: 'body'
-  }, PostCreateSchema)
+  }, PostUpdateSchema)
   public async createUserPost(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = req.user as IUserPayload;
-      const newPost = await this.postService.createUserPost(user, {
+      let mainRevision = req.params.postId ?
+        await this.postService.getPostByUniqueParams({
+          where: {
+            id: req.params.postId,
+            isMainRevision: true,
+            authorId: user.id
+          }
+        }) : undefined;
+
+      mainRevision = mainRevision ? await this.postRevision.makeRevisionNonMain(mainRevision) : mainRevision;
+      const newPost = await this.postService.createUserPost(user.role, {
         ...req.body,
         authorId: user.id
-      });
+      }, mainRevision);
 
       return res.status(201).location(`/api/posts/${newPost.id}`).json({
         status: 201,
@@ -110,7 +107,7 @@ class PostController {
   @JoiRequestValidation({
     type: 'params',
     name: 'postId'
-  }, IdSchema)
+  }, IdSchemaRequired)
   @JoiRequestValidation({
     type: 'body'
   }, PostUpdateSchema)
@@ -123,6 +120,33 @@ class PostController {
         }
       }, user);
 
+      switch (req.body.isMainRevision) {
+        case true:
+          if (post.isMainRevision) {
+            return res.status(422).send(`Validation error: post with id - ${post.id} is main revision`);
+          }
+
+          const mainRevision = await this.postService.getPostByUniqueParams({
+            where: {
+              isMainRevision: true,
+              revisionGroupId: post.revisionGroupId
+            }
+          });
+
+          await this.postRevision.makeRevisionNonMain(mainRevision);
+          break;
+
+        case false:
+          if (!post.isMainRevision || !post.revisionGroupId) {
+            return res.status(422).send(
+              `Validation error: post with id - ${post.id} is not main revision or only one revision`
+            );
+          }
+
+          await this.postRevision.setMainRevision(post.revisionGroupId);
+          break;
+      }
+
       const updatedPost = await this.postService.updateUserPost(post, req.body);
       return res.status(200).json({ status: 200, data: updatedPost, message: "Post successfully updated" });
     }
@@ -134,7 +158,7 @@ class PostController {
   @JoiRequestValidation({
     type: 'params',
     name: 'postId'
-  }, IdSchema)
+  }, IdSchemaRequired)
   public async deleteUserPostById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = req.user as IUserPayload;
@@ -143,6 +167,10 @@ class PostController {
           id: req.params.postId
         }
       }, user);
+
+      if (post.isMainRevision && post.revisionGroupId) {
+        await this.postRevision.setMainRevision(post.revisionGroupId);
+      }
 
       await this.postService.deleteUserPost(post);
       return res.status(200).json({ status: 200, message: "Post successfully deleted" });

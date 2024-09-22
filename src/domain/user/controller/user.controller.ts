@@ -1,10 +1,11 @@
 import { Op } from 'sequelize';
 import { Request, Response, NextFunction } from 'express';
+import { IdSchemaRequired } from '../../validation/joi/schema/joi.params.schema';
 import UserService from '../service/user.service';
 import CryptoProvider from '../../../utils/lib/crypto/crypto.provider';
 import JoiRequestValidation from '../../validation/joi/decorator/joi.validation.decorator';
-import IdSchema from '../../validation/joi/schema/joi.params.schema';
-import UserPrivateUpdateSchema from '../validation/schema/update/private/user.private.update.schema';
+import UserRole from '../validation/enum/user.role.enum';
+import AdminUpdateSchema from '../validation/schema/admin.update.schema';
 
 class UserController {
   constructor(
@@ -18,7 +19,7 @@ class UserController {
       let users = [];
 
       if (!searchSubstring) {
-        users = await this.userService.getAllUsers({}, 'admin');
+        users = await this.userService.getAllUsers({}, UserRole.admin);
       }
       else {
         users = await this.userService.getAllUsers({
@@ -28,7 +29,7 @@ class UserController {
               { email: { [Op.like]: `%${searchSubstring}%` } }
             ]
           }
-        }, 'admin');
+        }, UserRole.admin);
       }
 
       return res.status(200).json({ status: 200, data: users, message: "List of all users" });
@@ -41,14 +42,14 @@ class UserController {
   @JoiRequestValidation({
     type: 'params',
     name: 'userId'
-  }, IdSchema)
+  }, IdSchemaRequired)
   public async getUserById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = await this.userService.getUserByUniqueParams({
         where: {
           id: req.params.userId
         }
-      }, 'admin');
+      }, UserRole.admin);
 
       return res.status(200).json({ status: 200, data: user, message: "User details" });
     }
@@ -60,10 +61,10 @@ class UserController {
   @JoiRequestValidation({
     type: 'params',
     name: 'userId'
-  }, IdSchema)
+  }, IdSchemaRequired)
   @JoiRequestValidation({
     type: 'body'
-  }, UserPrivateUpdateSchema)
+  }, AdminUpdateSchema)
   public async updateUserById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const newUserData = req.body;
@@ -80,7 +81,7 @@ class UserController {
       const updatedUser = await this.userService.updateUser(user, {
         ...newUserData,
         refreshToken: null
-      }, true);
+      });
 
       return res.status(200).json({ status: 200, data: updatedUser, message: "User successfully updated" });
     }
@@ -92,7 +93,7 @@ class UserController {
   @JoiRequestValidation({
     type: 'params',
     name: 'userId'
-  }, IdSchema)
+  }, IdSchemaRequired)
   public async deleteUserById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = await this.userService.getUserByUniqueParams({

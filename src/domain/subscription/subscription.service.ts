@@ -3,23 +3,23 @@ import { NotFound } from 'http-errors';
 import Subscription from '../../database/sequelize/models/subscription/subscription.model';
 import DomainService from '../domain.service.abstract';
 import UserService from '../user/service/user.service';
-import IRoleSettings from '../role.settings.interface';
+import RoleSettingsType from '../role.settings.interface';
 import IUserPayload from '../auth/validation/interface/user.payload.interface';
 import ISubscriptionCreate from './validation/interface/subscription.create.interface';
 import ISubscriptionUpdate from './validation/interface/subscription.update.interface';
+import SubscriptionRole from './validation/enum/subscription.role.enum';
+import SubscriptionRoleFilter from './validation/enum/subscription.role.filter.enum';
+import SubscriptionPublicFields from './validation/enum/subscription.public.fields.enum';
+import UserRole from '../user/validation/enum/user.role.enum';
 
 class SubscriptionService extends DomainService {
   private readonly userService: UserService;
-  protected override readonly roleSettings: IRoleSettings = {
+  private readonly subscrPublicFields: SubscriptionPublicFields[] = Object.values(SubscriptionPublicFields);
+
+  protected override readonly roleSettings: RoleSettingsType = {
     admin: {},
     user: {
-      attributes: [
-        'id',
-        'type',
-        'period',
-        'userName',
-        'subscriberName'
-      ]
+      attributes: this.subscrPublicFields
     }
   };
 
@@ -28,56 +28,41 @@ class SubscriptionService extends DomainService {
     this.userService = userService;
   }
 
-  protected override findOptionsRoleFilter(findOptions: FindOptions, user: IUserPayload): FindOptions {
-    const roleSpecificOptions = this.roleSettings[user.role];
-    Object.assign(findOptions, roleSpecificOptions);
-    return findOptions;
-  }
-
-  private findOptionsSubscriptionFilter(
+  private applySubscriptionFilters(
     findOptions: FindOptions,
-    userSubscriptionRole: 'user' | 'subscriber',
-    id: string
-  ): FindOptions
-  {
-    switch (userSubscriptionRole) {
-      case 'subscriber':
-        findOptions.where = {
-          ...findOptions.where,
-          subscriberId: id
-        };
-        break;
-
-      case 'user':
-        findOptions.where = {
-          ...findOptions.where,
-          userId: id
-        };
-        break;
+    user: IUserPayload,
+    subscriptionRole: SubscriptionRole
+  ): FindOptions {
+    findOptions = this.findOptionsRoleFilter(findOptions, user.role);
+    findOptions.where = {
+      ...findOptions.where,
+      [SubscriptionRoleFilter[subscriptionRole]]: user.id
     }
 
     return findOptions;
   }
 
-  private applyAllFilters(
-    findOptions: FindOptions,
-    user: IUserPayload,
-    subscriptionRole: 'user' | 'subscriber'
-  )
-  {
-    findOptions = this.findOptionsSubscriptionFilter(findOptions, subscriptionRole, user.id);
-    findOptions = this.findOptionsRoleFilter(findOptions, user);
+  protected override modelRoleFilter(userRole: UserRole, subscription: Subscription): Partial<Subscription> {
+    return userRole === 'user' ?
+      Object.fromEntries(
+        Object.entries(subscription)
+          .filter(([key]) => this.subscrPublicFields.includes(key as SubscriptionPublicFields))
+      ) : subscription;
+  }
+
+  protected override findOptionsRoleFilter(findOptions: FindOptions, userRole: UserRole): FindOptions {
+    const roleSpecificOptions = this.roleSettings[userRole];
+    Object.assign(findOptions, roleSpecificOptions);
     return findOptions;
   }
 
   public async getAllSubscriptions(
     findOptions: FindOptions,
     user?: IUserPayload,
-    subscriptionRole?: 'user' | 'subscriber'
-  ): Promise<Subscription[]>
-  {
+    subscriptionRole?: SubscriptionRole
+  ): Promise<Subscription[]> {
     if (user && subscriptionRole) {
-      findOptions = this.applyAllFilters(findOptions, user, subscriptionRole);
+      findOptions = this.applySubscriptionFilters(findOptions, user, subscriptionRole);
     }
 
     const subscriptions = await Subscription.findAll(findOptions);
@@ -87,15 +72,13 @@ class SubscriptionService extends DomainService {
   public async getSubscriptionByUniqueParams(
     findOptions: FindOptions,
     user?: IUserPayload,
-    subscriptionRole?: 'user' | 'subscriber'
-  ): Promise<Subscription>
-  {
+    subscriptionRole?: SubscriptionRole
+  ): Promise<Subscription> {
     if (user && subscriptionRole) {
-      findOptions = this.applyAllFilters(findOptions, user, subscriptionRole);
+      findOptions = this.applySubscriptionFilters(findOptions, user, subscriptionRole);
     }
 
     const subscription = await Subscription.findOne(findOptions);
-
     if (!subscription) {
       throw new NotFound("Subscription is not found");
     }
@@ -104,45 +87,30 @@ class SubscriptionService extends DomainService {
   }
 
   public async createSubscriptionAsSubscriber(
-    subscriber: IUserPayload,
+    subscriberRole: UserRole,
     subscriptionDataCreate: ISubscriptionCreate
-  ): Promise<Subscription>
-  {
+  ): Promise<Partial<Subscription>> {
     const user = await this.userService.getUserByUniqueParams({
       where: {
         name: subscriptionDataCreate.userName
       }
     });
 
-    const subscription = await Subscription.create({
+    const newSubscription = await Subscription.create({
       ...subscriptionDataCreate,
       userId: user.id
     });
 
-    return (
-      await this.getSubscriptionByUniqueParams({
-        where: {
-          id: subscription.id
-        }
-      }, subscriber)
-    );
+    return this.modelRoleFilter(subscriberRole, newSubscription);
   }
 
   public async updateSubscription(
     subscription: Subscription,
     newSubscriptionData: ISubscriptionUpdate
-  ): Promise<Subscription>
-  {
+  ): Promise<Subscription> {
     Object.assign(subscription, newSubscriptionData);
     await subscription.save();
-
-    return (
-      await this.getSubscriptionByUniqueParams({
-        where: {
-          id: subscription.id
-        }
-      })
-    );
+    return subscription;
   }
 
   public async deleteSubscription(subscription: Subscription): Promise<void> {

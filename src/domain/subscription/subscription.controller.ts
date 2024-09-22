@@ -1,9 +1,10 @@
 import { Op } from 'sequelize';
 import { Request, Response, NextFunction } from 'express';
+import { IdSchemaRequired } from '../validation/joi/schema/joi.params.schema';
 import SubscriptionService from './subscription.service';
 import JoiRequestValidation from '../validation/joi/decorator/joi.validation.decorator';
 import IUserPayload from '../auth/validation/interface/user.payload.interface';
-import IdSchema from '../validation/joi/schema/joi.params.schema';
+import SubscriptionRole from './validation/enum/subscription.role.enum';
 import SubscriptionRoleSchema from './validation/schema/subscription.param.schema';
 import SubscriptionCreateSchema from './validation/schema/subscription.create.schema';
 import SubscriptionUpdateSchema from './validation/schema/subscription.update.schema';
@@ -15,18 +16,17 @@ class SubscriptionController {
     this.subscriptionService = subscriptionService;
   }
 
+  @JoiRequestValidation({
+    type: 'params',
+    name: 'subscriptionRole'
+  }, SubscriptionRoleSchema)
   public async getAllSubscriptions(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = req.user as IUserPayload;
-      const subscriptionRole = req.params.subscriptionRole as 'user' | 'subscriber';
+      const subscriptionRole = req.params.subscriptionRole as SubscriptionRole;
       const searchSubstring = req.query.search;
 
       let subscriptions = [];
-
-      const { error } = SubscriptionRoleSchema.validate(subscriptionRole);
-      if (error) {
-        return res.status(422).send(`Validation error: ${error.details[0].message}`);
-      }
 
       if (!searchSubstring) {
         subscriptions = await this.subscriptionService.getAllSubscriptions({}, user, subscriptionRole);
@@ -37,8 +37,8 @@ class SubscriptionController {
             [Op.or]: [
               { type: { [Op.like]: `%${searchSubstring}%` } },
               { period: { [Op.like]: `%${searchSubstring}%` } },
-              { userId: { [Op.like]: `%${searchSubstring}%` } },
-              { subscriberId: { [Op.like]: `%${searchSubstring}%` } }
+              { userName: { [Op.like]: `%${searchSubstring}%` } },
+              { subscriberName: { [Op.like]: `%${searchSubstring}%` } }
             ]
           }
         }, user, subscriptionRole);
@@ -62,11 +62,11 @@ class SubscriptionController {
   @JoiRequestValidation({
     type: 'params',
     name: 'subscriptionId'
-  }, IdSchema)
+  }, IdSchemaRequired)
   public async getSubscriptionById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = req.user as IUserPayload;
-      const subscriptionRole = req.params.subscriptionRole as 'user' | 'subscriber';
+      const subscriptionRole = req.params.subscriptionRole as SubscriptionRole;
       const subscription = await this.subscriptionService.getSubscriptionByUniqueParams({
         where: {
           id: req.params.subscriptionId
@@ -101,7 +101,7 @@ class SubscriptionController {
       subscriptionDataCreate.subscriberId = subscriber.id;
 
       const newSubscription = await this.subscriptionService.createSubscriptionAsSubscriber(
-        subscriber,
+        subscriber.role,
         subscriptionDataCreate
       );
 
@@ -119,7 +119,7 @@ class SubscriptionController {
   @JoiRequestValidation({
     type: 'params',
     name: 'subscriptionId'
-  }, IdSchema)
+  }, IdSchemaRequired)
   @JoiRequestValidation({
     type: 'body'
   }, SubscriptionUpdateSchema)
@@ -155,7 +155,7 @@ class SubscriptionController {
   @JoiRequestValidation({
     type: 'params',
     name: 'subscriptionId'
-  }, IdSchema)
+  }, IdSchemaRequired)
   @JoiRequestValidation({
     type: 'params',
     name: 'subscriptionRole'
@@ -167,7 +167,7 @@ class SubscriptionController {
   ): Promise<Response | void> {
     try {
       const user = req.user as IUserPayload;
-      const subscriptionRole = req.params.subscriptionRole as 'user' | 'subscriber';
+      const subscriptionRole = req.params.subscriptionRole as SubscriptionRole;
       const subscription = await this.subscriptionService.getSubscriptionByUniqueParams({
         where: {
           id: req.params.subscriptionId

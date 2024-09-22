@@ -17,9 +17,9 @@ class User extends Model {
   @Column({
     type: DataType.UUID,
     primaryKey: true,
-    defaultValue: () => uuid(),
     unique: true,
-    allowNull: false
+    allowNull: false,
+    defaultValue: () => uuid()
   })
   id!: string;
 
@@ -52,8 +52,8 @@ class User extends Model {
 
   @Column({
     type: DataType.BOOLEAN,
-    defaultValue: false,
-    allowNull: false
+    allowNull: false,
+    defaultValue: false
   })
   isActivated!: boolean;
 
@@ -71,8 +71,8 @@ class User extends Model {
 
   @Column({
     type: DataType.DATE,
-    defaultValue: new Date(),
-    allowNull: false
+    allowNull: false,
+    defaultValue: new Date()
   })
   createdAt!: Date;
 
@@ -85,8 +85,8 @@ class User extends Model {
 
   @Column({
     type: DataType.INTEGER,
-    defaultValue: 0,
-    allowNull: false
+    allowNull: false,
+    defaultValue: 0
   })
   rating!: number;
 

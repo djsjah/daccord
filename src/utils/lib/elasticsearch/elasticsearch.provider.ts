@@ -15,6 +15,10 @@ class ElasticSearchProvider {
     });
   }
 
+  public async checkConnection(): Promise<void> {
+    await this.client.ping();
+  }
+
   public async isIndexExist(indexName: string): Promise<boolean> {
     return (
       await this.client.indices.exists({
@@ -52,8 +56,7 @@ class ElasticSearchProvider {
     indexName: string,
     documentId: string,
     newDocumentBody: object
-  ): Promise<void>
-  {
+  ): Promise<void> {
     await this.client.update({
       index: indexName,
       id: documentId,

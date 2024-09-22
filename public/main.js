@@ -1,31 +1,14 @@
-import { ModalModule } from './js/presentation/modal/modal.module.js';
-import { AuthModule } from './js/presentation/auth/auth.module.js';
-import { PostSearch } from './js/presentation/post/post.search.js';
-import { ApiTester } from './js/api/api.tester.js';
-import {
-  getUserAuthData,
-  isStatusOk
-} from './js/api/api.constructor.js';
+import DI from './js/app.container.js';
+import AppModule from './js/app.module.js';
 
 async function main() {
-  let userData = null;
+  window.onpageshow = function (event) {
+    if (event.persisted) {
+      window.location.reload();
+    }
+  };
 
-  try {
-    const authResponse = await getUserAuthData();
-    console.log("Попытка получить данные пользователя (http://localhost:5000/auth): ", authResponse);
-    isStatusOk(authResponse);
-
-    userData = await authResponse.json();
-    console.log("\nДанные ответа (запрос - http://localhost:5000/auth): ", userData);
-  }
-  catch (err) {
-    console.log(err);
-  }
-
-  AuthModule(userData);
-  ModalModule();
-  PostSearch();
-  ApiTester();
+  await DI.registerInstance('appModule', new AppModule()).onModuleInit();
 }
 
 main();

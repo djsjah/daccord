@@ -13,9 +13,9 @@ class Subscription extends Model {
   @Column({
     type: DataType.UUID,
     primaryKey: true,
-    defaultValue: () => uuid(),
     unique: true,
-    allowNull: false
+    allowNull: false,
+    defaultValue: () => uuid()
   })
   id!: string;
 
@@ -45,13 +45,15 @@ class Subscription extends Model {
 
   @ForeignKey(() => User)
   @Column({
-    type: DataType.UUID
+    type: DataType.UUID,
+    allowNull: false
   })
   userId!: string;
 
   @ForeignKey(() => User)
   @Column({
-    type: DataType.UUID
+    type: DataType.UUID,
+    allowNull: false
   })
   subscriberId!: string;
 }

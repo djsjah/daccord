@@ -9,8 +9,9 @@ import JWTStrategy from '../../../utils/lib/jwt/jwt.strategy';
 import CryptoProvider from '../../../utils/lib/crypto/crypto.provider';
 import JoiRequestValidation from '../../validation/joi/decorator/joi.validation.decorator';
 import IUserPayload from '../../auth/validation/interface/user.payload.interface';
-import IUserUpdate from '../validation/interface/update/user.update.interface';
-import UserPublicUpdateSchema from '../validation/schema/update/public/user.public.update.schema';
+import IUserSystemUpdate from '../validation/interface/user.system.update.interface';
+import UserRole from '../validation/enum/user.role.enum';
+import UserUpdateSchema from '../validation/schema/user.update.schema';
 
 class UserUpdateController extends DomainController {
   constructor(
@@ -25,7 +26,7 @@ class UserUpdateController extends DomainController {
 
   @JoiRequestValidation({
     type: 'body'
-  }, UserPublicUpdateSchema)
+  }, UserUpdateSchema)
   public async updateUser(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       let newUserData = req.body;
@@ -40,7 +41,7 @@ class UserUpdateController extends DomainController {
       newUserData = await this.updateUserEmail(req, userPayload);
       newUserData = await this.isUpdateUserJWTTokens(req, res, userPayload);
 
-      const updatedUser = await this.userService.updateUser(user, newUserData, true);
+      const updatedUser = await this.userService.updateUser(user, newUserData);
       return res.status(200).json({
         status: 200,
         data: updatedUser,
@@ -77,7 +78,7 @@ class UserUpdateController extends DomainController {
           id: user.id,
           name: user.name,
           email: user.email,
-          role: user.role as 'user' | 'admin'
+          role: user.role as UserRole
         }
       );
 
@@ -86,7 +87,7 @@ class UserUpdateController extends DomainController {
         id: user.id,
         name: user.name,
         email: newUserEmail,
-        role: user.role as 'admin' | 'user'
+        role: user.role as UserRole
       });
 
       newUserData.verifToken = null;
@@ -102,7 +103,11 @@ class UserUpdateController extends DomainController {
     }
   }
 
-  public async updateUserPassword(req: Request, res: Response, user: User): Promise<Response | IUserUpdate> {
+  public async updateUserPassword(
+    req: Request,
+    res: Response,
+    user: User
+  ): Promise<Response | IUserSystemUpdate> {
     const newUserData = req.body;
     const hashOldPassword = newUserData.oldPassword ?
       await this.cryptoProvider.hashStringBySHA256(newUserData.oldPassword) : null;
@@ -127,7 +132,7 @@ class UserUpdateController extends DomainController {
     return newUserData;
   }
 
-  public async updateUserEmail(req: Request, userPayload: IUserPayload): Promise<IUserUpdate> {
+  public async updateUserEmail(req: Request, userPayload: IUserPayload): Promise<IUserSystemUpdate> {
     const newUserData = req.body;
 
     if (userPayload.role !== 'admin' && newUserData.email && newUserData.email !== userPayload.email) {
@@ -169,13 +174,13 @@ class UserUpdateController extends DomainController {
     req: Request,
     res: Response,
     userPayload: IUserPayload
-  ): Promise<IUserUpdate> {
+  ): Promise<IUserSystemUpdate> {
     const newUserData = req.body;
     const updatedUserPayload: IUserPayload = {
       id: userPayload.id,
       name: userPayload.name,
       email: userPayload.email,
-      role: userPayload.role as 'user' | 'admin'
+      role: userPayload.role as UserRole
     };
 
     let isUpdateUserJWTTokens = false;
@@ -203,7 +208,7 @@ class UserUpdateController extends DomainController {
     req: Request,
     res: Response,
     updatedUserPayload: IUserPayload
-  ): Promise<IUserUpdate> {
+  ): Promise<IUserSystemUpdate> {
     const newUserData = req.body;
     const accessToken = await this.jwtStrategy.createJWTToken(updatedUserPayload);
     const refreshToken = await this.jwtStrategy.createJWTToken(updatedUserPayload, false);

@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Post Inspector</title>
+  <link rel="stylesheet" href="../../style/global/normalize.css">
+  <link rel="stylesheet" href="../../style/global/initial.css">
+  <link rel="stylesheet" href="../../style/specific/style.css">
+  <link rel="stylesheet" href="../../style/specific/anim.css">
+  <script type="module" src="main.js"></script>
+</head>
+
+<body>
+  <header class="header">
+    <div class="container">
+      <div class="header__block flex">
+        <picture class="header__picture flex">
+          <img src="../../img/header/logo.svg" alt="Логотип 'Daccord'">
+        </picture>
+
+        <nav class="header__nav">
+          <ul class="header__list header__list_nav flex list-reset">
+            <li class="header__item">
+              <a href="../../index.html" class="header__link">
+                Главная
+              </a>
+            </li>
+
+            <li class="header__item">
+              <a href="../../index.html" class="header__link">
+                О&nbsp;нас
+              </a>
+            </li>
+
+            <li class="header__item">
+              <a href="../../index.html" class="header__link">
+                Документация
+              </a>
+            </li>
+
+            <li class="header__item">
+              <a href="../../index.html" class="header__link">
+                Блог
+              </a>
+            </li>
+
+            <li class="header__item">
+              <a href="../../index.html" class="header__link">
+                Поддержка
+              </a>
+            </li>
+          </ul>
+        </nav>
+
+        <ul class="header__list header__list_user flex list-reset">
+          <li class="header__item">
+            <button class="header__interactive header__interactive_search flex button-reset">
+              <svg width="28" height="28" viewbox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="8.79564" height="2.19891"
+                  transform="matrix(-0.711314 0.702874 0.711314 0.702874 6.25647 20.2722)" fill="white" />
+                <path fill-rule="evenodd" clip-rule="evenodd"
+                  d="M15.3286 23.3112C9.54218 23.3112 5.06477 18.549 5.06477 12.9507C5.06477 7.35228 9.54218 2.59013 15.3286 2.59013C21.115 2.59013 25.5924 7.35228 25.5924 12.9507C25.5924 18.549 21.115 23.3112 15.3286 23.3112ZM15.3286 25.9013C8.33038 25.9013 2.6572 20.1031 2.6572 12.9507C2.6572 5.79821 8.33038 0 15.3286 0C22.3268 0 28 5.79821 28 12.9507C28 20.1031 22.3268 25.9013 15.3286 25.9013Z"
+                  fill="white" />
+              </svg>
+            </button>
+          </li>
+
+          <li class="header__item">
+            <div class="header__auth-info flex">
+              <button class="header__interactive header__interactive_account button-reset">
+                <svg fill="#ffffff" width="40px" height="40px" viewbox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+                  <g stroke-width="0" />
+                  <g stroke-linecap="round" stroke-linejoin="round" />
+                  <g>
+                    <path
+                      d="M 27.9999 51.9063 C 41.0546 51.9063 51.9063 41.0781 51.9063 28 C 51.9063 14.9453 41.0312 4.0937 27.9765 4.0937 C 14.8983 4.0937 4.0937 14.9453 4.0937 28 C 4.0937 41.0781 14.9218 51.9063 27.9999 51.9063 Z M 27.9999 35.9922 C 20.9452 35.9922 15.5077 38.5 13.1405 41.3125 C 9.9999 37.7968 8.1014 33.1328 8.1014 28 C 8.1014 16.9609 16.9140 8.0781 27.9765 8.0781 C 39.0155 8.0781 47.8983 16.9609 47.9219 28 C 47.9219 33.1563 46.0234 37.8203 42.8593 41.3359 C 40.4921 38.5234 35.0546 35.9922 27.9999 35.9922 Z M 27.9999 32.0078 C 32.4999 32.0547 36.0390 28.2109 36.0390 23.1719 C 36.0390 18.4375 32.4765 14.5 27.9999 14.5 C 23.4999 14.5 19.9140 18.4375 19.9609 23.1719 C 19.9843 28.2109 23.4765 31.9609 27.9999 32.0078 Z" />
+                  </g>
+                </svg>
+              </button>
+
+              <span class="header__user display-none">
+                jason_statham
+              </span>
+            </div>
+          </li>
+
+          <li class="header__item">
+            <button class="header__link header__link_auth button-reset">
+              Войти
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="container">
+      <section class="post post_history section">
+        <h1 class="post__title">
+          Список ревизий поста
+        </h1>
+
+        <ul class="post__list post__list_main flex list-reset">
+        </ul>
+      </section>
+
+      <div class="disabled-block display-none">
+      </div>
+
+      <div class="decorator decorator_modal display-none flex">
+        <div class="modal modal_auth display-none">
+          <div class="modal__head flex">
+            <h2 class="modal__title">
+              Авторизация
+            </h2>
+
+            <button class="modal__button modal__button_cancel flex button-reset">
+              <svg width="29" height="29" viewbox="0 0 29 29" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd"
+                  d="M22.2332 7.73333L21.2665 6.76666L14.4998 13.5334L7.73318 6.7667L6.76652 7.73336L13.5332 14.5L6.76654 21.2667L7.73321 22.2333L14.4998 15.4667L21.2665 22.2334L22.2332 21.2667L15.4665 14.5L22.2332 7.73333Z"
+                  fill="#B0B0B0" />
+              </svg>
+            </button>
+          </div>
+
+          <form class="modal__body modal__body_form flex">
+            <ul class="modal__list modal__list_auth flex">
+              <li class="modal__item modal__item_contents">
+                <label class="modal__label modal__label_auth">
+                  <input type="text" name="email" autocomplete="new-password" required
+                    class="modal__input modal__input_auth">
+
+                  <span class="modal__placeholder modal__placeholder_auth">
+                    Почта<span class="modal__flag modal__flag_required">*</span>
+                  </span>
+                </label>
+              </li>
+
+              <li class="modal__item modal__item_contents">
+                <label class="modal__label modal__label_auth">
+                  <input type="password" name="password" autocomplete="new-password" required
+                    class="modal__input modal__input_auth">
+
+                  <span class="modal__placeholder modal__placeholder_auth">
+                    Пароль<span class="modal__flag modal__flag_required">*</span>
+                  </span>
+                </label>
+              </li>
+            </ul>
+
+            <ul class="modal__list modal__list_helpers flex">
+              <li class="modal__item modal__item_contents">
+                <button class="modal__button modal__button_restore button-reset">
+                  Забыли пароль?
+                </button>
+              </li>
+
+              <li class="modal__item modal__item_contents">
+                <button class="modal__button modal__button_registration button-reset">
+                  Регистрация
+                </button>
+              </li>
+            </ul>
+
+            <div class="modal__foot flex">
+              <p class="modal__error display-none">
+              </p>
+
+              <ul class="modal__list modal__list_foot flex">
+                <li class="modal__item modal__item_contents">
+                  <button type="submit" class="modal__button modal__button_save flex button-reset">
+                    <span class="modal__text">
+                      Войти
+                    </span>
+                  </button>
+                </li>
+
+                <li class="modal__item modal__item_contents">
+                  <button type="button" class="modal__button modal__button_cancel button-reset">
+                    Отмена
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </form>
+        </div>
+
+        <div class="modal modal_post_constructor display-none">
+          <div class="modal__head flex">
+            <h2 class="modal__title">
+              Создайте новый пост
+            </h2>
+
+            <button class="modal__button modal__button_cancel flex button-reset">
+              <svg width="29" height="29" viewbox="0 0 29 29" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd"
+                  d="M22.2332 7.73333L21.2665 6.76666L14.4998 13.5334L7.73318 6.7667L6.76652 7.73336L13.5332 14.5L6.76654 21.2667L7.73321 22.2333L14.4998 15.4667L21.2665 22.2334L22.2332 21.2667L15.4665 14.5L22.2332 7.73333Z"
+                  fill="#B0B0B0" />
+              </svg>
+            </button>
+          </div>
+
+          <form class="modal__body modal__body_form flex">
+            <ul class="modal__list modal__list_constructor flex">
+              <li class="modal__item">
+                <h4 class="modal__title modal__title_input">
+                  <span class="modal__text">
+                    Заголовок<span class="modal__flag modal__flag_required">*</span>
+                  </span>
+                </h4>
+
+                <label class="modal__label modal__label_constructor">
+                  <input type="text" name="title" required class="modal__input modal__input_constructor">
+                </label>
+              </li>
+
+              <li class="modal__item">
+                <h4 class="modal__title modal__title_input">
+                  <span class="modal__text">
+                    Текст<span class="modal__flag modal__flag_required">*</span>
+                  </span>
+                </h4>
+
+                <label class="modal__label modal__label_constructor">
+                  <textarea name="content" class="modal__input modal__input_textarea" required></textarea>
+                </label>
+              </li>
+            </ul>
+
+            <div class="modal__foot flex">
+              <p class="modal__error display-none">
+              </p>
+
+              <ul class="modal__list modal__list_foot flex">
+                <li class="modal__item modal__item_contents">
+                  <button type="submit" class="modal__button modal__button_save flex button-reset">
+                    <span class="modal__text">
+                      Создать
+                    </span>
+                  </button>
+                </li>
+
+                <li class="modal__item modal__item_contents">
+                  <button type="button" class="modal__button modal__button_cancel button-reset">
+                    Отмена
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </form>
+        </div>
+
+        <div class="modal modal_post_mutator display-none">
+          <div class="modal__head flex">
+            <div class="modal__wrapper modal__wrapper_data flex">
+              <h2 class="modal__title">
+                Изменить пост
+              </h2>
+
+              <span class="modal__data">
+                <span class="modal__id">
+                  ID:
+                </span>
+
+                <span class="modal__id modal__id_value">
+                  123458
+                </span>
+              </span>
+            </div>
+
+            <button class="modal__button modal__button_cancel flex button-reset">
+              <svg width="29" height="29" viewbox="0 0 29 29" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd"
+                  d="M22.2332 7.73333L21.2665 6.76666L14.4998 13.5334L7.73318 6.7667L6.76652 7.73336L13.5332 14.5L6.76654 21.2667L7.73321 22.2333L14.4998 15.4667L21.2665 22.2334L22.2332 21.2667L15.4665 14.5L22.2332 7.73333Z"
+                  fill="#B0B0B0" />
+              </svg>
+            </button>
+          </div>
+
+          <form class="modal__body modal__body_form flex">
+            <ul class="modal__list modal__list_mutator flex">
+              <li class="modal__item">
+                <h4 class="modal__title modal__title_input">
+                  <span class="modal__text">
+                    Заголовок
+                  </span>
+                </h4>
+
+                <label class="modal__label modal__label_mutator">
+                  <input type="text" name="title" class="modal__input modal__input_mutator">
+                </label>
+              </li>
+
+              <li class="modal__item">
+                <h4 class="modal__title modal__title_input">
+                  <span class="modal__text">
+                    Текст
+                  </span>
+                </h4>
+
+                <label class="modal__label modal__label_mutator">
+                  <textarea name="content" class="modal__input modal__input_textarea"></textarea>
+                </label>
+              </li>
+            </ul>
+
+            <div class="modal__foot flex">
+              <p class="modal__error display-none">
+              </p>
+
+              <ul class="modal__list modal__list_foot flex">
+                <li class="modal__item modal__item_contents">
+                  <button type="submit" class="modal__button modal__button_save flex button-reset">
+                    <span class="modal__text">
+                      Сохранить
+                    </span>
+                  </button>
+                </li>
+
+                <li class="modal__item modal__item_contents">
+                  <button type="button" class="modal__button modal__button_cancel button-reset">
+                    Отмена
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </form>
+        </div>
+
+        <div class="modal modal_post_destructor display-none">
+          <div class="modal__head flex">
+            <h2 class="modal__title">
+              Удалить пост
+            </h2>
+
+            <button class="modal__button modal__button_cancel flex button-reset">
+              <svg width="29" height="29" viewbox="0 0 29 29" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd"
+                  d="M22.2332 7.73333L21.2665 6.76666L14.4998 13.5334L7.73318 6.7667L6.76652 7.73336L13.5332 14.5L6.76654 21.2667L7.73321 22.2333L14.4998 15.4667L21.2665 22.2334L22.2332 21.2667L15.4665 14.5L22.2332 7.73333Z"
+                  fill="#B0B0B0" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="modal__body">
+            <p class="modal__descr">
+              Вы&nbsp;действительно хотите удалить данный пост?
+            </p>
+          </div>
+
+          <div class="modal__foot flex">
+            <p class="modal__error hidden-total">
+            </p>
+
+            <ul class="modal__list modal__list_foot flex">
+              <li class="modal__item">
+                <button class="modal__button modal__button_save flex button-reset">
+                  <span class="modal__text">
+                    Удалить
+                  </span>
+                </button>
+              </li>
+
+              <li class="modal__item">
+                <button class="modal__button modal__button_cancel button-reset">
+                  Отмена
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <template class="preloader-template preloader-template_save">
+      <svg width="16" height="16" viewbox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g clip-path="url(#clip0_224_6260)">
+          <path
+            d="M3.00008 8.03996C3.00008 10.8234 5.2566 13.08 8.04008 13.08C10.8236 13.08 13.0801 10.8234 13.0801 8.03996C13.0801 5.25648 10.8236 2.99996 8.04008 2.99996C7.38922 2.99996 6.7672 3.1233 6.196 3.348"
+            stroke="#B89EFF" stroke-width="2" stroke-miterlimit="10" stroke-linecap="round" />
+        </g>
+        <defs>
+          <clippath>
+            <rect width="16" height="16" fill="white" />
+          </clippath>
+        </defs>
+      </svg>
+    </template>
+
+    <template class="auth-template auth-template_logout">
+      <button class="header__link header__link_auth_out button-reset">
+        Выйти
+      </button>
+    </template>
+
+    <template class="post-template post-template_warn">
+      <div class="post__warn">
+        Сначала вы должный пройти авторизацию
+      </div>
+    </template>
+
+    <template class="post-template post-template_flag_main_revision">
+      <div class="post__flag post__flag_main_revision">
+        <span class="post__corner post__corner_top_left"></span>
+        <span class="post__corner post__corner_top_right"></span>
+        <span class="post__corner post__corner_bottom_left"></span>
+        <span class="post__corner post__corner_bottom_right"></span>
+        Основная ревизия
+      </div>
+    </template>
+
+    <template class="post-template post-template_button_revision_switch">
+      <button class="post__button post__button_revision post__button_revision_switch button-reset">
+        Сделать основной
+      </button>
+    </template>
+
+    <template class="post-template post-template_item">
+      <li class="post__review flex">
+        <article class="post__article flex">
+          <h3 class="post__title post__title_main">
+            Мой кирпичный дом
+          </h3>
+
+          <div class="post__info flex">
+            <div class="post__wrapper post__wrapper_column flex">
+              <span class="post__wrapper post__wrapper_created">
+                <span class="post__text">
+                  Дата публикации:
+                </span>
+
+                <span class="post__date post__date_created">
+                  25.08.2024
+                </span>
+              </span>
+
+              <span class="post__wrapper post__wrapper_updated">
+                <span class="post__text">
+                  Дата изменения:
+                </span>
+
+                <span class="post__date post__date_updated">
+                  26.08.2024
+                </span>
+              </span>
+            </div>
+
+            <div class="post__wrapper post__wrapper_column flex">
+              <span class="post__id">
+                9f6b5a8e-7c0d-4f3e-ba85-123456789012
+              </span>
+
+              <span class="post__wrapper post__wrapper_author display-none">
+                <span class="post__text">
+                  Автор:
+                </span>
+
+                <span class="post__id post__id_author">
+                  9f6b5a8e-7c0d-4f3e-ba85-123456789012
+                </span>
+              </span>
+            </div>
+          </div>
+
+          <p class="post__content">
+            Lorem ipsum dolor sit amet consectetur adipisicing elit. Quibusdam repellendus id sint,
+            expedita dolorum qui, architecto officia molestiae ab laboriosam voluptatum reiciendis et
+            velit laudantium dolor harum repellat laborum libero.
+          </p>
+
+          <div class="post__footer flex">
+            <ul class="post__list post__list_mutator flex list-reset">
+              <li class="post__item">
+                <button class="post__button post__button_update main-interact button-reset">
+                  Изменить пост
+                </button>
+              </li>
+
+              <li class="post__item">
+                <button class="post__button post__button_remove main-interact button-reset">
+                  Удалить пост
+                </button>
+              </li>
+            </ul>
+          </div>
+        </article>
+      </li>
+    </template>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+    </div>
+  </footer>
+</body>
+
+</html>

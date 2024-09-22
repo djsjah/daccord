@@ -15,5 +15,8 @@ export const PostFiltersSchema = Joi.alternatives().try(
   }),
   Joi.object({
     content: PostSearchSchema
+  }),
+  Joi.object({
+    revisionGroupId: Joi.string().required()
   })
 ).optional();

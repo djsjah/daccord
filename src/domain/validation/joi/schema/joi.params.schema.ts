@@ -1,4 +1,4 @@
 import Joi, { Schema } from 'joi';
 
-const IdSchema: Schema<string> = Joi.string().uuid().required();
-export default IdSchema;
+export const IdSchemaRequired: Schema<string> = Joi.string().uuid().required();
+export const IdSchemaOptional: Schema<string> = Joi.string().uuid().optional();

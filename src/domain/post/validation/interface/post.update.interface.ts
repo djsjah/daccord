@@ -1,7 +1,7 @@
 interface IPostUpdate {
+  revisionGroupId?: string;
+  isMainRevision?: boolean;
   title?: string;
-  access?: 'public' | 'private';
   content?: string;
-  tags?: string[];
 };
 export default IPostUpdate;

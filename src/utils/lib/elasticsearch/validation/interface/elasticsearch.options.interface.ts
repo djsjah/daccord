@@ -1,4 +1,4 @@
-import ElasticSearchMethod from '../enum/elasticsearch.method';
+import ElasticSearchMethod from '../enum/elasticsearch.method.enum';
 
 interface IElasticSearchOptions {
   index: string;

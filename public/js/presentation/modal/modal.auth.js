@@ -1,50 +1,54 @@
 import { getDataFromForm } from '../../helpers/helpers.js';
-import { signin, isStatusOk } from '../../api/api.constructor.js';
-import {
-  showModal,
-  hideModal,
-  startSavePreloader,
-  endSavePreloader,
-  setModalError
-} from './modal.module.js';
+import { signin, isStatusOk } from '../../api/api.js';
 
-const modalAuth = document.querySelector('.modal_auth');
+class ModalAuth {
+  modal = document.querySelector('.modal_auth');
+  openModalButton = document.querySelector('.header__link_auth');
+  authButton = this.modal.querySelector('.modal__button_save');
+  modalForm = this.modal.querySelector('.modal__body_form');
+  closeModalButtonArray = this.modal.querySelectorAll('.modal__button_cancel');
 
-export function ModalAuth() {
-  const openModalButton = document.querySelector('.header__button_auth');
-  const authButton = modalAuth.querySelector('.modal__button_save');
-  const modalForm = modalAuth.querySelector('.modal__body_form');
-  const closeModalButtonArray = modalAuth.querySelectorAll('.modal__button_cancel');
+  #modalUtils = null;
+  #userAuth = null;
 
-  openModalButton.addEventListener('click', async () => {
-    await showModal(modalAuth);
-  });
+  constructor(userAuth, modalUtils) {
+    this.#modalUtils = modalUtils;
+    this.#userAuth = userAuth;
+  }
 
-  modalForm.addEventListener('submit', async (ev) => {
-    ev.preventDefault();
-    startSavePreloader(authButton);
-
-    try {
-      const signinResponse = await signin(getDataFromForm(modalForm));
-      console.log("\n\nПопытка авторизоваться пользователю (http://localhost:5000/auth/signin): ", signinResponse);
-      isStatusOk(signinResponse);
-
-      const userData = await signinResponse.json();
-      console.log("\nДанные ответа (запрос - http://localhost:5000/auth/signin): ", userData);
-    }
-    catch (err) {
-      await endSavePreloader(authButton);
-      setModalError(modalAuth, err);
+  init() {
+    if (this.#userAuth.getAuthData()) {
       return;
     }
 
-    await endSavePreloader(authButton);
-    location.reload(true);
-  });
-
-  closeModalButtonArray.forEach((closeModalButton) => {
-    closeModalButton.addEventListener('click', async () => {
-      await hideModal(modalAuth);
+    this.openModalButton.addEventListener('click', async () => {
+      await this.#modalUtils.showModal(this.modal);
     });
-  });
+
+    this.modalForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      this.#modalUtils.startSavePreloader(this.authButton);
+
+      try {
+        const signinResponse = await signin(getDataFromForm(this.modalForm));
+        isStatusOk(signinResponse);
+      }
+      catch (err) {
+        await this.#modalUtils.endSavePreloader(this.authButton);
+        this.#modalUtils.setModalError(err);
+        return;
+      }
+
+      await this.#modalUtils.endSavePreloader(this.authButton);
+      location.reload(true);
+    });
+
+    this.closeModalButtonArray.forEach((closeModalButton) => {
+      closeModalButton.addEventListener('click', async () => {
+        await this.#modalUtils.hideModal();
+        this.modalForm.reset();
+      });
+    });
+  }
 }
+export default ModalAuth;

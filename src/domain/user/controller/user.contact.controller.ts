@@ -1,11 +1,11 @@
 import { Op } from 'sequelize';
 import { NextFunction, Request, Response } from 'express';
+import { IdSchemaRequired } from '../../validation/joi/schema/joi.params.schema';
 import UserContactService from '../service/user.contact.service';
 import JoiRequestValidation from '../../validation/joi/decorator/joi.validation.decorator';
 import IUserPayload from '../../auth/validation/interface/user.payload.interface';
-import IdSchema from '../../validation/joi/schema/joi.params.schema';
-import UserContactCreateSchema from '../validation/schema/user.contact.create.schema';
-import UserContactUpdateSchema from '../validation/schema/update/user.contact.update.schema';
+import UserContactCreateSchema from '../validation/schema/contact/contact.create.schema';
+import UserContactUpdateSchema from '../validation/schema/contact/contact.update.schema';
 
 class UserContactController {
   private readonly userContactService: UserContactService;
@@ -48,7 +48,7 @@ class UserContactController {
   @JoiRequestValidation({
     type: 'params',
     name: 'userContactId'
-  }, IdSchema)
+  }, IdSchemaRequired)
   public async getUserContactById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const user = req.user as IUserPayload;
@@ -92,7 +92,7 @@ class UserContactController {
   @JoiRequestValidation({
     type: 'params',
     name: 'userContactId'
-  }, IdSchema)
+  }, IdSchemaRequired)
   @JoiRequestValidation({
     type: 'body'
   }, UserContactUpdateSchema)
@@ -128,7 +128,7 @@ class UserContactController {
   @JoiRequestValidation({
     type: 'params',
     name: 'userContactId'
-  }, IdSchema)
+  }, IdSchemaRequired)
   public async deleteUserContactById(
     req: Request,
     res: Response,

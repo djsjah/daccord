@@ -1,8 +1,9 @@
-import IUserContactCreate from '../../../user/validation/interface/user.contact.create.interface';
+import IUserContactCreate from '../../../user/validation/interface/contact/contact.create.interface';
+import UserRole from '../../../user/validation/enum/user.role.enum';
 
 interface IUserRegister {
   name: string;
-  role: 'admin' | 'user';
+  role: UserRole;
   email: string;
   password: string;
   contacts?: IUserContactCreate[];

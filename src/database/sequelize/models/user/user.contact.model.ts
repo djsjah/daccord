@@ -14,9 +14,9 @@ class UserContact extends Model {
   @Column({
     type: DataType.UUID,
     primaryKey: true,
-    defaultValue: () => uuid(),
     unique: true,
-    allowNull: false
+    allowNull: false,
+    defaultValue: () => uuid()
   })
   id!: string;
 

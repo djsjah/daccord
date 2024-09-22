@@ -23,19 +23,15 @@ class AuthController extends DomainController {
   public getUserPayload(req: Request, res: Response, next: NextFunction): Response {
     const user = req.user;
 
-    if (user) {
-      return res.status(200).json({
-        status: 200,
-        data: {
-          name: user.name,
-          role: user.role,
-          email: user.email
-        },
-        message: "User details"
-      });
-    }
-
-    return res.status(204).end();
+    return user ? res.status(200).json({
+      status: 200,
+      data: {
+        name: user.name,
+        role: user.role,
+        email: user.email
+      },
+      message: "User details"
+    }) : res.status(204).end();
   }
 
   @JoiRequestValidation({
@@ -43,14 +39,13 @@ class AuthController extends DomainController {
   }, UserAuthSchema)
   public async signin(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
+      const userPassword = req.body.password;
+      const hashUserPassword = await this.cryptoProvider.hashStringBySHA256(userPassword);
       const user = await this.userService.getUserByUniqueParams({
         where: {
           email: req.body.email
         }
       });
-
-      const userPassword = req.body.password;
-      const hashUserPassword = await this.cryptoProvider.hashStringBySHA256(userPassword);
 
       if (user.dataValues.password !== hashUserPassword) {
         return res.status(401).send("Unauthorized - incorrect email or password");
@@ -141,6 +136,7 @@ class AuthController extends DomainController {
           id: userId
         }
       });
+
       await this.userService.updateUser(user, {
         refreshToken: null
       });
